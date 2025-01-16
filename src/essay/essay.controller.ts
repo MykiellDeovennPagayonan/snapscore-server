@@ -40,12 +40,8 @@ export class EssayController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    const base64 = await this.essayService.convertImageToBase64(file.filename);
-    console.log(base64);
-    return {
-      message: 'Image uploaded successfully',
-      filename: file.filename,
-      path: file.path,
-    };
+    const rating: number = await this.essayService.rateEssay(file.filename);
+    console.log(rating);
+    return rating;
   }
 }
