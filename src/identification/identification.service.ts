@@ -36,7 +36,7 @@ export class IdentificationService {
     }
   }
 
-  async rateEssay(filename: string): Promise<number> {
+  async gradeIdentification(filename: string): Promise<number> {
     try {
       const imageBase64 = await this.convertImageToBase64(filename);
 
@@ -49,8 +49,28 @@ export class IdentificationService {
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `Check the indentification answers, the answer sheet is as follows:
-          1.
+          content: `You are an AI that will check the identification test. Check the indentification answers always use the check_identification function. The answer sheet is as follows:
+          
+1. Mitochondria
+2. Iron
+3. Nitrogen
+4. Newton’s First Law of Motion (Inertia)
+5. Mars
+6. Photosynthesis
+7. Albert Einstein
+8. NaCl
+9. Heart
+10. Diamond
+11. Ampere (A)
+12. O negative
+13. 100°C
+14. Aurora Borealis
+15. Leaf
+16. Hydrogen
+17. Alexander Fleming
+18. Newton (N)
+19. Saturn
+20. Seismology
             `,
         },
         {
@@ -85,6 +105,7 @@ export class IdentificationService {
         const data =
           response.choices[0].message.tool_calls[0].function.arguments;
         const parsedData = JSON.parse(data);
+        console.log(parsedData);
         return parsedData;
       } else {
         throw new BadRequestException('Failed to rate the essay');
@@ -128,12 +149,18 @@ const checkIdentification: ChatCompletionTool = {
                 description:
                   "Indicates if the student's answer matches the correct answer.",
               },
+              manualCheck: {
+                type: 'boolean',
+                description:
+                  'Indicates that the item needs manual checking as the AI is doubtful about the correctedness of the checking. Happens could be of very poor handwriting which is not readable by the AI.',
+              },
             },
             required: [
               'itemNumber',
               'correctAnswer',
               'studentAnswer',
               'isCorrect',
+              'manualCheck',
             ],
           },
         },
