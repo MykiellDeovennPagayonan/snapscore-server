@@ -20,7 +20,7 @@ export class EssayService {
   private readonly logger = new Logger(EssayService.name);
 
   async convertImageToBase64(filename: string): Promise<string> {
-    const filePath = join(process.cwd(), 'uploads', filename); // ✅ Fixed path to root
+    const filePath = join(process.cwd(), 'uploads', filename);
     try {
       await fs.access(filePath);
       this.logger.log(`Reading file: ${filePath}`);
@@ -49,13 +49,42 @@ export class EssayService {
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `Rate the essay with the following criteria:
-          
-          idea: 20 points
-          coherence: 20 points
-          structure: 20 points
-          grammar: 20 points
-          vocabulary: 20 points
+          content: `Rate the essay using the following criteria and detailed scoring scale:
+
+Idea (20 points)
+3-5: The essay lacks a clear central idea; ideas are confusing or irrelevant.
+7-10: The main idea is weakly developed and lacks originality or insight.
+12-15: The main idea is clear but could be more original or engaging. Some supporting ideas are underdeveloped.
+18-19: The main idea is strong, creative, and well-developed with relevant supporting points.
+20: The essay presents a highly original, insightful idea fully developed with compelling support.
+
+Coherence (20 points)
+3-5: Ideas are disjointed and transitions are absent or confusing.
+7-10: Limited use of transitions; connections between ideas are unclear.
+12-15: Ideas generally flow, but transitions could be smoother. Some minor lapses in logic.
+18-19: Logical progression of ideas with effective transitions. Few, if any, lapses in coherence.
+20: Ideas flow seamlessly with excellent transitions and logical structure throughout.
+
+Structure (20 points)
+3-5: Lacks clear introduction, body, or conclusion. Disorganized.
+7-10: Basic structure present but weak organization or imbalance in sections.
+12-15: Clear structure with distinct introduction, body, and conclusion. Some organizational flaws.
+18-19: Well-organized with clear, balanced sections and smooth progression.
+20: Exceptionally well-structured with engaging introduction, cohesive body, and strong conclusion.
+
+Grammar (20 points)
+3-5: Frequent grammatical errors severely hinder understanding.
+7-10: Several errors in grammar and punctuation; some impact on readability.
+12-15: Mostly correct grammar with occasional minor errors. Readability is not affected.
+18-19: Very few minor errors; grammar enhances clarity and readability.
+20: Flawless grammar and punctuation throughout.
+
+Vocabulary (20 points)
+3-5: Very limited vocabulary with frequent misuse of words.
+7-10: Basic vocabulary; some word choice errors and repetition.
+12-15: Adequate vocabulary with occasional variety and mostly correct word usage.
+18-19: Rich and varied vocabulary, enhancing the essay’s tone and meaning.
+20: Sophisticated, precise, and varied vocabulary that elevates the essay.
           `,
         },
         {
@@ -63,7 +92,9 @@ export class EssayService {
           content: [
             {
               type: 'image_url',
-              image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`,
+              },
             },
           ],
         },
@@ -87,6 +118,7 @@ export class EssayService {
         const data =
           response.choices[0].message.tool_calls[0].function.arguments;
         const parsedData = JSON.parse(data);
+        console.log(parsedData);
         let totalRating = 0;
         parsedData.criteria.map((criterion) => {
           totalRating += criterion.rating;
@@ -112,7 +144,8 @@ const rateEssay: ChatCompletionTool = {
       properties: {
         essayContent: {
           type: 'string',
-          description: 'The full text of the essay to be evaluated.',
+          description:
+            'The full text of the essay to be evaluated. Do not edit or improve or correct the essay, only display what you can read as is',
         },
         criteria: {
           type: 'array',
