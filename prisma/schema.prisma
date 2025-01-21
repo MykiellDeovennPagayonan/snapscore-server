@@ -1,14 +1,111 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  fullName    String
+  email       String       @unique
+  password    String
+  assessments Assessment[]
+  students    Student[]
+  createdAt   DateTime     @default(now())
+}
+
+model Student {
+  id          String              @id @default(auto()) @map("_id") @db.ObjectId
+  fullName    String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  userId      String              @db.ObjectId
+  user        User                @relation(fields: [userId], references: [id])
+  assessments StudentAssessment[]
+}
+
+model Assessment {
+  id                      String                   @id @default(auto()) @map("_id") @db.ObjectId
+  name                    String
+  identificationQuestions IdentificationQuestion[]
+  essayQuestions          EssayQuestion[]
+  userId                  String                   @db.ObjectId
+  user                    User                     @relation(fields: [userId], references: [id])
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  students                StudentAssessment[]
+}
+
+model StudentAssessment {
+  id                    String                 @id @default(auto()) @map("_id") @db.ObjectId
+  studentId             String                 @db.ObjectId
+  student               Student                @relation(fields: [studentId], references: [id])
+  assessmentId          String                 @db.ObjectId
+  assessment            Assessment             @relation(fields: [assessmentId], references: [id])
+  essayResults          EssayResult[]
+  identificationResults IdentificationResult[]
+}
+
+model IdentificationQuestion {
+  id                   String                 @id @default(auto()) @map("_id") @db.ObjectId
+  question             String
+  correctAnswer        String
+  assessmentId         String                 @db.ObjectId
+  assessment           Assessment             @relation(fields: [assessmentId], references: [id])
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  IdentificationResult IdentificationResult[]
+}
+
+model EssayQuestion {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  question      String
+  essayCriteria EssayCriteria[]
+  assessmentId  String          @db.ObjectId
+  assessment    Assessment      @relation(fields: [assessmentId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  EssayResult   EssayResult[]
+}
+
+model EssayCriteria {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  criteria        String
+  maxScore        Int
+  rubrics         Rubric[]
+  essayQuestionId String        @db.ObjectId
+  essayQuestion   EssayQuestion @relation(fields: [essayQuestionId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Rubric {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  score       String
+  description String
+  criteriaId  String        @db.ObjectId
+  criteria    EssayCriteria @relation(fields: [criteriaId], references: [id])
+}
+
+model EssayResult {
+  id         String            @id @default(auto()) @map("_id") @db.ObjectId
+  score      Int
+  studentId  String            @db.ObjectId
+  student    StudentAssessment @relation(fields: [studentId], references: [id])
+  questionId String            @db.ObjectId
+  Question   EssayQuestion     @relation(fields: [questionId], references: [id])
+  createdAt  DateTime          @default(now())
+}
+
+model IdentificationResult {
+  id         String                 @id @default(auto()) @map("_id") @db.ObjectId
+  isCorrect  Boolean
+  studentId  String                 @db.ObjectId
+  student    StudentAssessment      @relation(fields: [studentId], references: [id])
+  questionId String                 @db.ObjectId
+  Question   IdentificationQuestion @relation(fields: [questionId], references: [id])
+  createdAt  DateTime               @default(now())
 }
