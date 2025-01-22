@@ -1,4 +1,9 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { AssessmentsService } from './assessments.service';
 
 @Controller('assessments')
-export class AssessmentsController {}
+export class AssessmentsController {
+  constructor(private assessmentsService: AssessmentsService) {
+    
+  }
+}
