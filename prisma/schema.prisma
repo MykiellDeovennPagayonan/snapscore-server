@@ -8,55 +8,45 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  fullName    String
-  email       String       @unique
-  password    String
-  assessments Assessment[]
-  students    Student[]
-  createdAt   DateTime     @default(now())
+  id                        String                     @id @default(auto()) @map("_id") @db.ObjectId
+  fullName                  String
+  email                     String                     @unique
+  password                  String
+  essayAssessments          EssayAssessment[]
+  identificationAssessments IdentificationAssessment[]
+  createdAt                 DateTime                   @default(now())
 }
 
-model Student {
-  id          String              @id @default(auto()) @map("_id") @db.ObjectId
-  fullName    String
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  userId      String              @db.ObjectId
-  user        User                @relation(fields: [userId], references: [id])
-  assessments StudentAssessment[]
+model EssayAssessment {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  essayQuestions EssayQuestion[]
+  userId         String          @db.ObjectId
+  user           User            @relation(fields: [userId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  essayResults   EssayResult[]
 }
 
-model Assessment {
+model IdentificationAssessment {
   id                      String                   @id @default(auto()) @map("_id") @db.ObjectId
   name                    String
   identificationQuestions IdentificationQuestion[]
-  essayQuestions          EssayQuestion[]
   userId                  String                   @db.ObjectId
   user                    User                     @relation(fields: [userId], references: [id])
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
-  students                StudentAssessment[]
-}
-
-model StudentAssessment {
-  id                    String                 @id @default(auto()) @map("_id") @db.ObjectId
-  studentId             String                 @db.ObjectId
-  student               Student                @relation(fields: [studentId], references: [id])
-  assessmentId          String                 @db.ObjectId
-  assessment            Assessment             @relation(fields: [assessmentId], references: [id])
-  essayResults          EssayResult[]
-  identificationResults IdentificationResult[]
+  identificationResults   IdentificationResult[]
 }
 
 model IdentificationQuestion {
-  id                   String                 @id @default(auto()) @map("_id") @db.ObjectId
+  id                   String                   @id @default(auto()) @map("_id") @db.ObjectId
   question             String
   correctAnswer        String
-  assessmentId         String                 @db.ObjectId
-  assessment           Assessment             @relation(fields: [assessmentId], references: [id])
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
+  assessmentId         String                   @db.ObjectId
+  assessment           IdentificationAssessment @relation(fields: [assessmentId], references: [id])
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
   IdentificationResult IdentificationResult[]
 }
 
@@ -65,7 +55,7 @@ model EssayQuestion {
   question      String
   essayCriteria EssayCriteria[]
   assessmentId  String          @db.ObjectId
-  assessment    Assessment      @relation(fields: [assessmentId], references: [id])
+  assessment    EssayAssessment @relation(fields: [assessmentId], references: [id])
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   EssayResult   EssayResult[]
@@ -91,21 +81,21 @@ model Rubric {
 }
 
 model EssayResult {
-  id         String            @id @default(auto()) @map("_id") @db.ObjectId
-  score      Int
-  studentId  String            @db.ObjectId
-  student    StudentAssessment @relation(fields: [studentId], references: [id])
-  questionId String            @db.ObjectId
-  Question   EssayQuestion     @relation(fields: [questionId], references: [id])
-  createdAt  DateTime          @default(now())
+  id           String          @id @default(auto()) @map("_id") @db.ObjectId
+  score        Int
+  assessmentId String          @db.ObjectId
+  assessment   EssayAssessment @relation(fields: [assessmentId], references: [id])
+  questionId   String          @db.ObjectId
+  Question     EssayQuestion   @relation(fields: [questionId], references: [id])
+  createdAt    DateTime        @default(now())
 }
 
 model IdentificationResult {
-  id         String                 @id @default(auto()) @map("_id") @db.ObjectId
-  isCorrect  Boolean
-  studentId  String                 @db.ObjectId
-  student    StudentAssessment      @relation(fields: [studentId], references: [id])
-  questionId String                 @db.ObjectId
-  Question   IdentificationQuestion @relation(fields: [questionId], references: [id])
-  createdAt  DateTime               @default(now())
+  id           String                   @id @default(auto()) @map("_id") @db.ObjectId
+  isCorrect    Boolean
+  assessmentId String                   @db.ObjectId
+  assessment   IdentificationAssessment @relation(fields: [assessmentId], references: [id])
+  questionId   String                   @db.ObjectId
+  Question     IdentificationQuestion   @relation(fields: [questionId], references: [id])
+  createdAt    DateTime                 @default(now())
 }
