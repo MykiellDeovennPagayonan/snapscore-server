@@ -13,7 +13,11 @@ export class EssayCriteriaService {
     });
   }
 
-  async addEssayCriteria(data: { criteria: string; maxScore: number; essayQuestionId: string }) {
+  async addEssayCriteria(data: {
+    criteria: string;
+    maxScore: number;
+    essayQuestionId: string;
+  }) {
     return prisma.essayCriteria.create({
       data,
     });
@@ -21,7 +25,7 @@ export class EssayCriteriaService {
 
   async updateEssayCriteria(
     id: string,
-    data: { criteria?: string; maxScore?: number }
+    data: { criteria?: string; maxScore?: number },
   ) {
     return prisma.essayCriteria.update({
       where: { id },

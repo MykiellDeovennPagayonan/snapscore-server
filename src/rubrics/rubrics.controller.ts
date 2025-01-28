@@ -1,5 +1,13 @@
 // eslint-disable-next-line prettier/prettier
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+} from '@nestjs/common';
 import { RubricsService } from './rubrics.service';
 
 @Controller('rubrics')

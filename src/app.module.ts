@@ -10,6 +10,9 @@ import { EssayCriteriaModule } from './essay-criteria/essay-criteria.module';
 import { RubricsModule } from './rubrics/rubrics.module';
 import { EssayResultsModule } from './essay-results/essay-results.module';
 import { IdentificationResultsModule } from './identification-results/identification-results.module';
+import { EssayAssessmentModule } from './essay-assessment/essay-assessment.module';
+import { IdentificationAssessmentModule } from './identification-assessment/identification-assessment.module';
+import { AssessmentsModule } from './assessments/assessments.module';
 
 @Module({
   imports: [
@@ -22,6 +25,9 @@ import { IdentificationResultsModule } from './identification-results/identifica
     RubricsModule,
     EssayResultsModule,
     IdentificationResultsModule,
+    EssayAssessmentModule,
+    IdentificationAssessmentModule,
+    AssessmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
