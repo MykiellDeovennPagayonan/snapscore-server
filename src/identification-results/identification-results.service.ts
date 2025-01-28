@@ -4,26 +4,51 @@ import { prisma } from '../prisma';
 @Injectable()
 export class IdentificationResultsService {
   async getAllIdentificationResults() {
-    return prisma.identificationResult.findMany();
+    return prisma.identificationResult.findMany({
+      include: {
+        assessment: true,
+        questionResults: true,
+      },
+    });
   }
 
   async getIdentificationResultById(id: string) {
     return prisma.identificationResult.findUnique({
       where: { id },
+      include: {
+        assessment: true,
+        questionResults: {
+          include: {
+            question: true,
+          },
+        },
+      },
     });
   }
 
   async addIdentificationResult(data: {
-    isCorrect: boolean;
-    studentId: string;
-    questionId: string;
+    studentName: string;
+    assessmentId: string;
+    questionResults: {
+      isCorrect: boolean;
+      questionId: string;
+    }[];
   }) {
     return prisma.identificationResult.create({
-      data,
+      data: {
+        studentName: data.studentName,
+        assessmentId: data.assessmentId,
+        questionResults: {
+          create: data.questionResults.map((result) => ({
+            isCorrect: result.isCorrect,
+            questionId: result.questionId,
+          })),
+        },
+      },
     });
   }
 
-  async updateIdentificationResult(id: string, data: { isCorrect?: boolean }) {
+  async updateIdentificationResult(id: string, data: { studentName?: string }) {
     return prisma.identificationResult.update({
       where: { id },
       data,
@@ -36,15 +61,30 @@ export class IdentificationResultsService {
     });
   }
 
-  async getResultsByStudentAssessmentId(studentId: string) {
+  async getResultsByStudentAssessmentId(assessmentId: string) {
     return prisma.identificationResult.findMany({
-      where: { studentId },
+      where: { assessmentId },
+      include: {
+        questionResults: {
+          include: {
+            question: true,
+          },
+        },
+      },
     });
   }
 
   async getResultsByQuestionId(questionId: string) {
-    return prisma.identificationResult.findMany({
+    return prisma.identificationQuestionResult.findMany({
       where: { questionId },
+      include: {
+        result: {
+          include: {
+            assessment: true,
+          },
+        },
+        question: true,
+      },
     });
   }
 }

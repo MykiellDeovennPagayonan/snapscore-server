@@ -13,41 +13,48 @@ import { EssayResultsService } from './essay-results.service';
 export class EssayResultsController {
   constructor(private essayResultsService: EssayResultsService) {}
 
-  // Get all essay results
   @Get()
   async getAllEssayResults() {
     return this.essayResultsService.getAllEssayResults();
   }
 
-  // Get a specific essay result by ID
   @Get(':id')
   async getEssayResultById(@Param('id') id: string) {
     return this.essayResultsService.getEssayResultById(id);
   }
 
-  // Record a student's essay result
   @Post()
   async recordEssayResult(
     @Body()
     recordEssayResultDto: {
+      studentName: string;
+      assessmentId: string;
       score: number;
-      studentId: string;
-      questionId: string;
+      questionResults: {
+        questionId: string;
+        score: number;
+        essayCriteriaResults: {
+          criteriaId: string;
+          score: number;
+        }[];
+      }[];
     },
   ) {
     return this.essayResultsService.addEssayResult(recordEssayResultDto);
   }
 
-  // Update an essay result by ID
   @Put(':id')
   async updateEssayResult(
     @Param('id') id: string,
-    @Body() updateEssayResultDto: any,
+    @Body()
+    updateEssayResultDto: {
+      studentName?: string;
+      score?: number;
+    },
   ) {
     return this.essayResultsService.updateEssayResult(id, updateEssayResultDto);
   }
 
-  // Delete an essay result by ID
   @Delete(':id')
   async deleteEssayResult(@Param('id') id: string) {
     return this.essayResultsService.deleteEssayResult(id);

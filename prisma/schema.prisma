@@ -93,7 +93,7 @@ model EssayResult {
 
 model EssayQuestionResult {
   id                   String                @id @default(auto()) @map("_id") @db.ObjectId
-  isCorrect            Boolean
+  score                Int
   resultId             String                @db.ObjectId
   result               EssayResult           @relation(fields: [resultId], references: [id])
   questionId           String                @db.ObjectId
@@ -105,7 +105,6 @@ model EssayQuestionResult {
 model EssayCriteriaResult {
   id               String              @id @default(auto()) @map("_id") @db.ObjectId
   score            Int
-  assessmentId     String              @db.ObjectId
   questionResultId String              @db.ObjectId
   questionResult   EssayQuestionResult @relation(fields: [questionResultId], references: [id])
   criteriaId       String              @db.ObjectId
@@ -118,7 +117,6 @@ model IdentificationResult {
   studentName     String
   assessmentId    String                         @db.ObjectId
   assessment      IdentificationAssessment       @relation(fields: [assessmentId], references: [id])
-  questionId      String                         @db.ObjectId
   questionResults IdentificationQuestionResult[]
 }
 

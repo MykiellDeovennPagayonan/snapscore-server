@@ -125,6 +125,11 @@ const checkIdentification: ChatCompletionTool = {
     parameters: {
       type: 'object',
       properties: {
+        studentName: {
+          type: 'string',
+          description:
+            'Name of the student who wrote the essay. If not indicated put "No name"',
+        },
         items: {
           type: 'array',
           description:
@@ -165,7 +170,7 @@ const checkIdentification: ChatCompletionTool = {
           },
         },
       },
-      required: ['items'],
+      required: ['items', 'studentName'],
       additionalProperties: false,
     },
   },

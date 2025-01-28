@@ -4,22 +4,80 @@ import { prisma } from '../prisma';
 @Injectable()
 export class EssayResultsService {
   async getAllEssayResults() {
-    return prisma.essayResult.findMany();
+    return prisma.essayResult.findMany({
+      include: {
+        assessment: true,
+        questionResults: {
+          include: {
+            question: true,
+            essayCriteriaResults: {
+              include: {
+                criteria: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   async getEssayResultById(id: string) {
     return prisma.essayResult.findUnique({
       where: { id },
+      include: {
+        assessment: true,
+        questionResults: {
+          include: {
+            question: true,
+            essayCriteriaResults: {
+              include: {
+                criteria: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
   async addEssayResult(data: {
+    studentName: string;
+    assessmentId: string;
     score: number;
-    studentId: string;
-    questionId: string;
+    questionResults: {
+      questionId: string;
+      score: number;
+      essayCriteriaResults: {
+        criteriaId: string;
+        score: number;
+      }[];
+    }[];
   }) {
     return prisma.essayResult.create({
-      data,
+      data: {
+        studentName: data.studentName,
+        assessmentId: data.assessmentId,
+        score: data.score,
+        questionResults: {
+          create: data.questionResults.map((result) => ({
+            score: result.score,
+            questionId: result.questionId,
+            essayCriteriaResults: {
+              create: result.essayCriteriaResults.map((criteriaResult) => ({
+                score: criteriaResult.score,
+                criteriaId: criteriaResult.criteriaId,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        questionResults: {
+          include: {
+            essayCriteriaResults: true,
+          },
+        },
+      },
     });
   }
 
@@ -36,15 +94,40 @@ export class EssayResultsService {
     });
   }
 
-  async getResultsByStudentAssessmentId(studentId: string) {
+  async getResultsByStudentAssessmentId(assessmentId: string) {
     return prisma.essayResult.findMany({
-      where: { studentId },
+      where: { assessmentId },
+      include: {
+        questionResults: {
+          include: {
+            question: true,
+            essayCriteriaResults: {
+              include: {
+                criteria: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
   async getResultsByQuestionId(questionId: string) {
-    return prisma.essayResult.findMany({
+    return prisma.essayQuestionResult.findMany({
       where: { questionId },
+      include: {
+        result: {
+          include: {
+            assessment: true,
+          },
+        },
+        question: true,
+        essayCriteriaResults: {
+          include: {
+            criteria: true,
+          },
+        },
+      },
     });
   }
 }

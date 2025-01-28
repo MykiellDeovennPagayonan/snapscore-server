@@ -147,6 +147,11 @@ const rateEssay: ChatCompletionTool = {
           description:
             'The full text of the essay to be evaluated. Do not edit or improve or correct the essay, only display what you can read as is',
         },
+        studentName: {
+          type: 'string',
+          description:
+            'Name of the student who wrote the essay. If not indicated put "No name"',
+        },
         criteria: {
           type: 'array',
           description: 'Array of criteria to rate the essay on.',
@@ -170,7 +175,7 @@ const rateEssay: ChatCompletionTool = {
           },
         },
       },
-      required: ['essayContent', 'criteria'],
+      required: ['essayContent', 'criteria', 'studentName'],
       additionalProperties: false,
     },
   },
