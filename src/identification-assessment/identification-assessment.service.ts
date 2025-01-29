@@ -21,6 +21,7 @@ export class IdentificationAssessmentService {
   }
 
   async createIdentificationAssessment(data: { name: string; userId: string }) {
+    console.log('Identification created');
     return prisma.identificationAssessment.create({
       data,
     });

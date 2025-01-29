@@ -24,6 +24,11 @@ export class UsersController {
     return this.usersService.getUserById(id);
   }
 
+  @Get('firebase/:id')
+  async getUserByFirebaseId(@Param('id') id: string) {
+    return this.usersService.getUserByFirebaseId(id);
+  }
+
   @Post()
   async createUser(@Body() createUserDto: any) {
     return this.usersService.createUser(createUserDto);
