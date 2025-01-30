@@ -1,5 +1,12 @@
-/* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+} from '@nestjs/common';
 import { IdentificationAssessmentService } from './identification-assessment.service';
 
 @Controller('identification-assessment')
@@ -17,17 +24,32 @@ export class IdentificationAssessmentController {
   }
 
   @Post()
-  async createIdentificationAssessment(@Body() createDto: { name: string; userId: string }) {
+  async createIdentificationAssessment(
+    @Body() createDto: { name: string; userId: string },
+  ) {
     return this.identificationService.createIdentificationAssessment(createDto);
   }
 
   @Put(':id')
-  async updateIdentificationAssessment(@Param('id') id: string, @Body() updateDto: { name?: string }) {
-    return this.identificationService.updateIdentificationAssessment(id, updateDto);
+  async updateIdentificationAssessment(
+    @Param('id') id: string,
+    @Body() updateDto: { name?: string },
+  ) {
+    return this.identificationService.updateIdentificationAssessment(
+      id,
+      updateDto,
+    );
   }
 
   @Delete(':id')
   async deleteIdentificationAssessment(@Param('id') id: string) {
     return this.identificationService.deleteIdentificationAssessment(id);
+  }
+
+  @Get('user-identification/:userId')
+  async getAssessmentsByUser(@Param('userId') userId: string) {
+    return this.identificationService.getIdentificationAssessmentByUserId(
+      userId,
+    );
   }
 }
