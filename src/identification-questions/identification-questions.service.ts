@@ -18,6 +18,7 @@ export class IdentificationQuestionsService {
     correctAnswer: string;
     assessmentId: string;
   }) {
+    console.log('Identification question created');
     return prisma.identificationQuestion.create({
       data,
     });

@@ -25,6 +25,13 @@ export class IdentificationResultsController {
     return this.identificationResultsService.getIdentificationResultById(id);
   }
 
+  @Get('assessment/:id')
+  async getResultsByStudentAssessmentId(@Param('id') id: string) {
+    return this.identificationResultsService.getResultsByStudentAssessmentId(
+      id,
+    );
+  }
+
   @Post()
   async recordIdentificationResult(
     @Body()

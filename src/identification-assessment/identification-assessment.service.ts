@@ -10,6 +10,8 @@ export class IdentificationAssessmentService {
   }
 
   async getIdentificationAssessmentById(id: string) {
+    console.log('fetching identification assessment by id', id);
+    console.log('Got here');
     return prisma.identificationAssessment.findUnique({
       where: { id },
       include: {
@@ -20,7 +22,19 @@ export class IdentificationAssessmentService {
     });
   }
 
+  async getIdentificationAssessmentByUserId(id: string) {
+    return prisma.identificationAssessment.findMany({
+      where: { userId: id },
+      include: {
+        identificationQuestions: true,
+        identificationResults: true,
+        user: true,
+      },
+    });
+  }
+
   async createIdentificationAssessment(data: { name: string; userId: string }) {
+    console.log('Identification created');
     return prisma.identificationAssessment.create({
       data,
     });

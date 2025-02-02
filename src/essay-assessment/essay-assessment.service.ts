@@ -10,8 +10,23 @@ export class EssayAssessmentService {
   }
 
   async getEssayAssessmentById(id: string) {
+    console.log('fetching essay assessment by id', id);
     return prisma.essayAssessment.findUnique({
       where: { id },
+      include: {
+        essayQuestions: {
+          include: { essayCriteria: { include: { rubrics: true } } },
+        },
+        essayResults: true,
+        user: true,
+      },
+    });
+  }
+
+  async getEssayAssessmentByUserId(id: string) {
+    console.log('fetching essay assessment by id', id);
+    return prisma.essayAssessment.findMany({
+      where: { userId: id },
       include: {
         essayQuestions: {
           include: { essayCriteria: { include: { rubrics: true } } },

@@ -1,5 +1,12 @@
-/* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+} from '@nestjs/common';
 import { EssayAssessmentService } from './essay-assessment.service';
 
 @Controller('essay-assessment')
@@ -17,12 +24,17 @@ export class EssayAssessmentController {
   }
 
   @Post()
-  async createEssayAssessment(@Body() createDto: { name: string; userId: string }) {
+  async createEssayAssessment(
+    @Body() createDto: { name: string; userId: string },
+  ) {
     return this.essayService.createEssayAssessment(createDto);
   }
 
   @Put(':id')
-  async updateEssayAssessment(@Param('id') id: string, @Body() updateDto: { name?: string }) {
+  async updateEssayAssessment(
+    @Param('id') id: string,
+    @Body() updateDto: { name?: string },
+  ) {
     return this.essayService.updateEssayAssessment(id, updateDto);
   }
 
@@ -34,5 +46,10 @@ export class EssayAssessmentController {
   @Get('user/:userId')
   async getAssessmentsByUser(@Param('userId') userId: string) {
     return this.essayService.getAllAssessmentsByUser(userId);
+  }
+
+  @Get('user-essay/:userId')
+  async getEssayAssessmentByUserId(@Param('userId') userId: string) {
+    return this.essayService.getEssayAssessmentByUserId(userId);
   }
 }

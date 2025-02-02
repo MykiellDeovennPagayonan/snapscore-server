@@ -13,9 +13,19 @@ export class UsersService {
     });
   }
 
-  async createUser(data: { email: string }) {
+  async createUser(data: {
+    email: string;
+    firebaseId: string;
+    fullName: string;
+  }) {
     return prisma.user.create({
       data,
+    });
+  }
+
+  async getUserByFirebaseId(firebaseId: string) {
+    return prisma.user.findUnique({
+      where: { firebaseId },
     });
   }
 
