@@ -23,6 +23,11 @@ export class EssayResultsController {
     return this.essayResultsService.getEssayResultById(id);
   }
 
+  @Get('assessment/:id')
+  async getResultsByStudentAssessmentId(@Param('id') id: string) {
+    return this.essayResultsService.getResultsByStudentAssessmentId(id);
+  }
+
   @Post()
   async recordEssayResult(
     @Body()
