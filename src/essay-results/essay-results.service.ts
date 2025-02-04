@@ -98,16 +98,24 @@ export class EssayResultsService {
     return prisma.essayResult.findMany({
       where: { assessmentId },
       include: {
+        assessment: true,
         questionResults: {
           include: {
             question: true,
             essayCriteriaResults: {
               include: {
-                criteria: true,
+                criteria: {
+                  include: {
+                    rubrics: true,
+                  },
+                },
               },
             },
           },
         },
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
   }
