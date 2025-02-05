@@ -90,15 +90,12 @@ export class IdentificationResultsService {
   }
 
   async getResultsByStudentAssessmentId(assessmentId: string) {
+    console.log(await prisma.identificationQuestionResult.findMany({}));
     return prisma.identificationResult.findMany({
       where: { assessmentId },
       include: {
         assessment: true,
-        questionResults: {
-          include: {
-            question: true,
-          },
-        },
+        questionResults: true,
       },
       orderBy: {
         createdAt: 'desc',

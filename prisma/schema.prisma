@@ -117,7 +117,7 @@ model IdentificationResult {
   studentName     String
   assessmentId    String                         @db.ObjectId
   assessment      IdentificationAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  createdAt        DateTime            @default(now())
+  createdAt       DateTime                       @default(now())
   questionResults IdentificationQuestionResult[]
 }
 

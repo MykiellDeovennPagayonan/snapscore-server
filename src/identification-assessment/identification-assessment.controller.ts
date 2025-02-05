@@ -53,7 +53,7 @@ export class IdentificationAssessmentController {
 
   @Get('user-identification/:userId')
   async getAssessmentsByUser(@Param('userId') userId: string) {
-    return this.identificationService.getIdentificationAssessmentsByFirebaseId(
+    return this.identificationService.getIdentificationAssessmentsByUserId(
       userId,
     );
   }
