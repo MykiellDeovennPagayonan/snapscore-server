@@ -5,38 +5,60 @@ import { prisma } from '../prisma';
 export class IdentificationAssessmentService {
   async getAllIdentificationAssessments() {
     return prisma.identificationAssessment.findMany({
-      include: { identificationQuestions: true, user: true },
+      include: { user: true, identificationResults: true },
     });
   }
 
   async getIdentificationAssessmentById(id: string) {
-    console.log('fetching identification assessment by id', id);
-    console.log('Got here');
     return prisma.identificationAssessment.findUnique({
       where: { id },
-      include: {
-        identificationQuestions: true,
-        identificationResults: true,
-        user: true,
-      },
+      include: { user: true, identificationResults: true },
     });
   }
 
-  async getIdentificationAssessmentByUserId(id: string) {
+  async getIdentificationAssessmentsByFirebaseId(firebaseId: string) {
+    const user = await prisma.user.findUnique({
+      where: { firebaseId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     return prisma.identificationAssessment.findMany({
-      where: { userId: id },
-      include: {
-        identificationQuestions: true,
-        identificationResults: true,
-        user: true,
-      },
+      where: { userId: user.id },
+      include: { user: true, identificationResults: true },
     });
   }
 
-  async createIdentificationAssessment(data: { name: string; userId: string }) {
-    console.log('Identification created');
+  async createIdentificationAssessment(data: {
+    name: string;
+    firebaseId: string;
+    questions: { correctAnswer: string }[];
+  }) {
+    const { name, firebaseId, questions } = data;
+
+    const user = await prisma.user.findUnique({
+      where: { firebaseId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     return prisma.identificationAssessment.create({
-      data,
+      data: {
+        name,
+        userId: user.id,
+        identificationQuestions: {
+          create: questions.map((question) => ({
+            correctAnswer: question.correctAnswer,
+          })),
+        },
+      },
+      include: {
+        identificationQuestions: true,
+      },
     });
   }
 

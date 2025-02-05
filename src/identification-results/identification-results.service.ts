@@ -75,16 +75,6 @@ export class IdentificationResultsService {
     });
   }
 
-  async getResultsByStudentAssessmentId(assessmentId: string) {
-    console.log('got results by student assessment id');
-    return prisma.identificationResult.findMany({
-      where: { assessmentId },
-      include: {
-        questionResults: true,
-      },
-    });
-  }
-
   async getResultsByQuestionId(questionId: string) {
     return prisma.identificationQuestionResult.findMany({
       where: { questionId },
@@ -97,5 +87,44 @@ export class IdentificationResultsService {
         question: true,
       },
     });
+  }
+
+  async getResultsByStudentAssessmentId(assessmentId: string) {
+    return prisma.identificationResult.findMany({
+      where: { assessmentId },
+      include: {
+        assessment: true,
+        questionResults: {
+          include: {
+            question: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async calculateScore(resultId: string) {
+    const result = await prisma.identificationResult.findUnique({
+      where: { id: resultId },
+      include: {
+        questionResults: true,
+      },
+    });
+
+    if (!result) return null;
+
+    const correctAnswers = result.questionResults.filter(
+      (qr) => qr.isCorrect,
+    ).length;
+    const total = result.questionResults.length;
+
+    return {
+      score: correctAnswers,
+      total,
+      percentage: (correctAnswers / total) * 100,
+    };
   }
 }
