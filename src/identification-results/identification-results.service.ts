@@ -31,6 +31,7 @@ export class IdentificationResultsService {
     assessmentId: string;
     questionResults: {
       isCorrect: boolean;
+      answer: string;
       questionId: string;
     }[];
   }) {
@@ -42,6 +43,7 @@ export class IdentificationResultsService {
           create: data.questionResults.map((result) => ({
             isCorrect: result.isCorrect,
             questionId: result.questionId,
+            answer: result.answer,
           })),
         },
       },
@@ -51,6 +53,18 @@ export class IdentificationResultsService {
   async updateIdentificationResult(id: string, data: { studentName?: string }) {
     return prisma.identificationResult.update({
       where: { id },
+      data,
+    });
+  }
+
+  async updateIdentificationQuestionResult(
+    id: string,
+    data: { isCorrect?: boolean },
+  ) {
+    return prisma.identificationQuestionResult.update({
+      where: {
+        id: id,
+      },
       data,
     });
   }
