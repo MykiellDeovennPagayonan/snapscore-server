@@ -115,7 +115,7 @@ model EssayCriteriaResult {
 model IdentificationResult {
   id              String                         @id @default(auto()) @map("_id") @db.ObjectId
   studentName     String
-  paperImage      String
+  paperImage      String                         @default("notfound.jpg")
   assessmentId    String                         @db.ObjectId
   assessment      IdentificationAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   createdAt       DateTime                       @default(now())

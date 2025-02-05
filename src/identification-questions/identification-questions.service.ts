@@ -14,7 +14,6 @@ export class IdentificationQuestionsService {
   }
 
   async addIdentificationQuestion(data: {
-    question: string;
     correctAnswer: string;
     assessmentId: string;
   }) {

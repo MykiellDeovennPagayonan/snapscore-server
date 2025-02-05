@@ -125,7 +125,7 @@ export class IdentificationService {
     ];
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-vision-preview',
+      model: 'gpt-4o-mini',
       messages: messages,
       temperature: 1,
       max_tokens: 15010,
@@ -149,84 +149,84 @@ export class IdentificationService {
     throw new BadRequestException('Failed to analyze the identification test');
   }
 
-  async gradeIdentification(filename: string): Promise<number> {
-    try {
-      const imageBase64 = await this.convertImageToBase64(filename);
+  //   async gradeIdentification(filename: string): Promise<number> {
+  //     try {
+  //       const imageBase64 = await this.convertImageToBase64(filename);
 
-      if (!imageBase64) {
-        throw new BadRequestException('Failed to convert image to Base64');
-      }
+  //       if (!imageBase64) {
+  //         throw new BadRequestException('Failed to convert image to Base64');
+  //       }
 
-      console.log(imageBase64);
+  //       console.log(imageBase64);
 
-      const messages: ChatCompletionMessageParam[] = [
-        {
-          role: 'system',
-          content: `You are an AI that will check the identification test. Check the indentification answers always use the check_identification function. The answer sheet is as follows:
-          
-1. Mitochondria
-2. Iron
-3. Nitrogen
-4. Newton’s First Law of Motion (Inertia)
-5. Mars
-6. Photosynthesis
-7. Albert Einstein
-8. NaCl
-9. Heart
-10. Diamond
-11. Ampere (A)
-12. O negative
-13. 100°C
-14. Aurora Borealis
-15. Leaf
-16. Hydrogen
-17. Alexander Fleming
-18. Newton (N)
-19. Saturn
-20. Seismology
-            `,
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-              },
-            },
-          ],
-        },
-      ];
+  //       const messages: ChatCompletionMessageParam[] = [
+  //         {
+  //           role: 'system',
+  //           content: `You are an AI that will check the identification test. Check the indentification answers always use the check_identification function. The answer sheet is as follows:
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 1,
-        max_tokens: 15010,
-        tools: functionCallingTools,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0,
-      });
+  // 1. Mitochondria
+  // 2. Iron
+  // 3. Nitrogen
+  // 4. Newton’s First Law of Motion (Inertia)
+  // 5. Mars
+  // 6. Photosynthesis
+  // 7. Albert Einstein
+  // 8. NaCl
+  // 9. Heart
+  // 10. Diamond
+  // 11. Ampere (A)
+  // 12. O negative
+  // 13. 100°C
+  // 14. Aurora Borealis
+  // 15. Leaf
+  // 16. Hydrogen
+  // 17. Alexander Fleming
+  // 18. Newton (N)
+  // 19. Saturn
+  // 20. Seismology
+  //             `,
+  //         },
+  //         {
+  //           role: 'user',
+  //           content: [
+  //             {
+  //               type: 'image_url',
+  //               image_url: {
+  //                 url: `data:image/jpeg;base64,${imageBase64}`,
+  //               },
+  //             },
+  //           ],
+  //         },
+  //       ];
 
-      if (
-        response.choices[0].message.tool_calls &&
-        response.choices[0].message.tool_calls[0].function.name ===
-          'check_identification'
-      ) {
-        const data =
-          response.choices[0].message.tool_calls[0].function.arguments;
-        const parsedData = JSON.parse(data);
-        console.log(parsedData);
-        return parsedData;
-      } else {
-        throw new BadRequestException('Failed to rate the essay');
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
+  //       const response = await openai.chat.completions.create({
+  //         model: 'gpt-4o-mini',
+  //         messages: messages,
+  //         temperature: 1,
+  //         max_tokens: 15010,
+  //         tools: functionCallingTools,
+  //         top_p: 1,
+  //         frequency_penalty: 0,
+  //         presence_penalty: 0,
+  //       });
+
+  //       if (
+  //         response.choices[0].message.tool_calls &&
+  //         response.choices[0].message.tool_calls[0].function.name ===
+  //           'check_identification'
+  //       ) {
+  //         const data =
+  //           response.choices[0].message.tool_calls[0].function.arguments;
+  //         const parsedData = JSON.parse(data);
+  //         console.log(parsedData);
+  //         return parsedData;
+  //       } else {
+  //         throw new BadRequestException('Failed to rate the essay');
+  //       }
+  //     } catch (error) {
+  //       throw error;
+  //     }
+  //   }
 }
 
 const checkIdentification: ChatCompletionTool = {
@@ -270,7 +270,12 @@ const checkIdentification: ChatCompletionTool = {
               manualCheck: {
                 type: 'boolean',
                 description:
-                  'Indicates that the item needs manual checking as the AI is doubtful about the correctedness of the checking. Happens could be of very poor handwriting which is not readable by the AI.',
+                  'Indicates that the item needs manual checking as the AI is doubtful about the correctedness of the checking.',
+              },
+              confidence: {
+                type: 'number',
+                description:
+                  'Confidence score (0-1) of the AI in its assessment.',
               },
             },
             required: [
@@ -279,12 +284,28 @@ const checkIdentification: ChatCompletionTool = {
               'studentAnswer',
               'isCorrect',
               'manualCheck',
+              'confidence',
             ],
           },
         },
+        metadata: {
+          type: 'object',
+          description: 'Additional information about the assessment',
+          properties: {
+            imageQuality: {
+              type: 'string',
+              enum: ['good', 'moderate', 'poor'],
+              description: 'Quality assessment of the uploaded image',
+            },
+            processingTime: {
+              type: 'number',
+              description: 'Time taken to process the image in milliseconds',
+            },
+          },
+          required: ['imageQuality'],
+        },
       },
-      required: ['items', 'studentName'],
-      additionalProperties: false,
+      required: ['items', 'studentName', 'metadata'],
     },
   },
 };

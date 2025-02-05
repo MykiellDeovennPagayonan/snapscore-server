@@ -64,6 +64,29 @@ export class IdentificationAssessmentService {
     });
   }
 
+  async createIdentificationAssessmentById(data: {
+    name: string;
+    id: string;
+    questions: { correctAnswer: string }[];
+  }) {
+    const { name, id, questions = [] } = data;
+
+    return prisma.identificationAssessment.create({
+      data: {
+        name,
+        userId: id,
+        identificationQuestions: {
+          create: questions.map((question) => ({
+            correctAnswer: question.correctAnswer,
+          })),
+        },
+      },
+      include: {
+        identificationQuestions: true,
+      },
+    });
+  }
+
   async updateIdentificationAssessment(id: string, data: { name?: string }) {
     return prisma.identificationAssessment.update({
       where: { id },
