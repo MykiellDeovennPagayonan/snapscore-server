@@ -1,9 +1,15 @@
+// upload.dto.ts
+class UploadFileDto {
+  path: string;
+}
+
+// upload.controller.ts
 import {
   Controller,
   Post,
   Get,
   Delete,
-  Param,
+  Body,
   UseInterceptors,
   UploadedFile,
   HttpStatus,
@@ -12,21 +18,18 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 
-@Controller('uploads')
+@Controller('upload')
 export class UploadController {
   constructor(private readonly uploadsService: UploadService) {}
 
-  @Post(':path')
+  @Post()
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
-    @Param('path') path: string,
+    @Body() uploadFileDto: UploadFileDto,
     @UploadedFile(
       new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /(jpg|jpeg|png|gif)$/,
-        })
         .addMaxSizeValidator({
-          maxSize: 10 * 1024 * 1024, // Allow larger uploads, we'll compress them
+          maxSize: 10 * 1024 * 1024,
         })
         .build({
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -34,7 +37,10 @@ export class UploadController {
     )
     file: Express.Multer.File,
   ) {
-    const result = await this.uploadsService.uploadFile(path, file);
+    const result = await this.uploadsService.uploadFile(
+      uploadFileDto.path,
+      file,
+    );
 
     return {
       statusCode: HttpStatus.CREATED,
@@ -43,9 +49,9 @@ export class UploadController {
     };
   }
 
-  @Get(':path')
-  async getFile(@Param('path') path: string) {
-    await this.uploadsService.getFile(path); // Check if file exists
+  @Get()
+  async getFile(@Body('path') path: string) {
+    await this.uploadsService.getFile(path);
     const url = this.uploadsService.getFileUrl(path);
 
     return {
@@ -56,8 +62,8 @@ export class UploadController {
     };
   }
 
-  @Delete(':path')
-  async deleteFile(@Param('path') path: string) {
+  @Delete()
+  async deleteFile(@Body('path') path: string) {
     await this.uploadsService.deleteFile(path);
 
     return {

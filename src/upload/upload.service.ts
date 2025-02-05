@@ -1,4 +1,3 @@
-// uploads.service.ts
 import {
   Injectable,
   BadRequestException,
@@ -10,7 +9,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class UploadService {
@@ -30,72 +29,101 @@ export class UploadService {
     this.bucket = process.env.AWS_BUCKET_NAME;
   }
 
+  private sanitizeFileName(fileName: string): string {
+    // Remove spaces and special characters, replace with hyphens
+    return fileName
+      .toLowerCase()
+      .replace(/[^a-z0-9.]/g, '-')
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading and trailing hyphens
+  }
+
+  private getFileExtension(mimeType: string): string {
+    const mimeToExt = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      // Add more mime types as needed
+    };
+    return mimeToExt[mimeType] || '.jpg';
+  }
+
   private async compressImage(buffer: Buffer, mime: string): Promise<Buffer> {
-    let quality = 80; // Start with 80% quality
-    let compressed = buffer;
-    let attempt = 0;
-    const maxAttempts = 5;
-
-    while (attempt < maxAttempts) {
-      let sharpInstance = sharp(buffer);
-
-      // Convert all images to JPEG for better compression
-      if (mime !== 'image/gif') {
-        sharpInstance = sharpInstance.jpeg({ quality });
-      } else {
-        // For GIFs, we'll keep the format but reduce colors if needed
-        sharpInstance = sharpInstance.gif();
+    try {
+      if (mime === 'image/gif') {
+        return buffer;
       }
 
-      compressed = await sharpInstance
-        .withMetadata() // Preserve metadata
+      let compressedImage = await sharp(buffer)
+        .jpeg({
+          quality: 80,
+          chromaSubsampling: '4:4:4',
+        })
         .toBuffer();
 
-      const size = compressed.length;
-
-      // If size is in desired range, return the buffer
-      if (size >= this.MIN_SIZE && size <= this.MAX_SIZE) {
-        break;
+      if (compressedImage.length > this.MAX_SIZE) {
+        compressedImage = await sharp(buffer)
+          .jpeg({
+            quality: 60,
+            chromaSubsampling: '4:2:0',
+          })
+          .toBuffer();
       }
 
-      // Adjust quality based on size
-      if (size > this.MAX_SIZE) {
-        quality = Math.max(quality - 10, 30); // Don't go below 30% quality
-      } else if (size < this.MIN_SIZE) {
-        // If smaller than target, use the current version
-        break;
-      }
-
-      attempt++;
+      return compressedImage;
+    } catch (error) {
+      console.error('Image compression error:', error);
+      throw new BadRequestException(
+        `Image compression failed: ${error.message}`,
+      );
     }
-
-    return compressed;
   }
 
   async uploadFile(path: string, file: Express.Multer.File) {
     try {
-      // Compress the image
-      const compressedBuffer = await this.compressImage(
-        file.buffer,
-        file.mimetype,
-      );
+      // Sanitize the path and add proper extension
+      const fileExtension = this.getFileExtension(file.mimetype);
+      const sanitizedPath = this.sanitizeFileName(path);
+      const finalPath = sanitizedPath.endsWith(fileExtension)
+        ? sanitizedPath
+        : `${sanitizedPath}${fileExtension}`;
+
+      let processedBuffer: Buffer;
+      let contentType = file.mimetype;
+
+      if (file.mimetype.startsWith('image/')) {
+        processedBuffer = await this.compressImage(file.buffer, file.mimetype);
+        // Update content type for compressed images (except GIFs)
+        if (file.mimetype !== 'image/gif') {
+          contentType = 'image/jpeg';
+        }
+      } else {
+        processedBuffer = file.buffer;
+      }
 
       const command = new PutObjectCommand({
         Bucket: this.bucket,
-        Key: path,
-        Body: compressedBuffer,
-        ContentType:
-          file.mimetype !== 'image/gif' ? 'image/jpeg' : file.mimetype,
+        Key: finalPath,
+        Body: processedBuffer,
+        ContentType: contentType,
+        Metadata: {
+          'original-name': file.originalname,
+          'content-type': contentType,
+        },
       });
 
       await this.s3Client.send(command);
 
       return {
-        path,
-        url: this.getFileUrl(path),
-        size: compressedBuffer.length,
+        path: finalPath,
+        url: this.getFileUrl(finalPath),
+        size: processedBuffer.length,
+        type: contentType,
       };
     } catch (error) {
+      console.error('Upload error:', error);
       throw new BadRequestException(`Failed to upload file: ${error.message}`);
     }
   }
