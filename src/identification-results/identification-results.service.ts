@@ -39,6 +39,7 @@ export class IdentificationResultsService {
       data: {
         studentName: data.studentName,
         assessmentId: data.assessmentId,
+        paperImage: 'notfound.jpg',
         questionResults: {
           create: data.questionResults.map((result) => ({
             isCorrect: result.isCorrect,
