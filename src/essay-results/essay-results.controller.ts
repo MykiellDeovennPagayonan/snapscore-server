@@ -38,6 +38,7 @@ export class EssayResultsController {
       questionResults: {
         questionId: string;
         score: number;
+        answer: string;
         essayCriteriaResults: {
           criteriaId: string;
           score: number;
@@ -46,6 +47,35 @@ export class EssayResultsController {
     },
   ) {
     return this.essayResultsService.addEssayResult(recordEssayResultDto);
+  }
+
+  @Put('/question/:id')
+  async updateEssayQuestionResult(
+    @Param('id') id: string,
+    @Body()
+    updateEssayQuestionResultDto: {
+      answer?: string;
+      score?: number;
+    },
+  ) {
+    return this.essayResultsService.updateEssayQuestionResult(
+      id,
+      updateEssayQuestionResultDto,
+    );
+  }
+
+  @Put('/criteria/:id')
+  async updateEssayCriteriaResult(
+    @Param('id') id: string,
+    @Body()
+    updateEssayCriteriaResultDto: {
+      score?: number;
+    },
+  ) {
+    return this.essayResultsService.updateEssayCriteriaResult(
+      id,
+      updateEssayCriteriaResultDto,
+    );
   }
 
   @Put(':id')

@@ -46,6 +46,7 @@ export class EssayResultsService {
     score: number;
     questionResults: {
       questionId: string;
+      answer: string;
       score: number;
       essayCriteriaResults: {
         criteriaId: string;
@@ -61,6 +62,7 @@ export class EssayResultsService {
         questionResults: {
           create: data.questionResults.map((result) => ({
             score: result.score,
+            answer: result.answer,
             questionId: result.questionId,
             essayCriteriaResults: {
               create: result.essayCriteriaResults.map((criteriaResult) => ({
@@ -78,6 +80,20 @@ export class EssayResultsService {
           },
         },
       },
+    });
+  }
+
+  async updateEssayQuestionResult(id: string, data: { score?: number }) {
+    return prisma.essayQuestionResult.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async updateEssayCriteriaResult(id: string, data: { score?: number }) {
+    return prisma.essayCriteriaResult.update({
+      where: { id },
+      data,
     });
   }
 
