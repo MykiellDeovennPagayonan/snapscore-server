@@ -93,6 +93,7 @@ model EssayResult {
 
 model EssayQuestionResult {
   id                   String                @id @default(auto()) @map("_id") @db.ObjectId
+  answer               String                @default("Unknown")
   score                Int
   resultId             String                @db.ObjectId
   result               EssayResult           @relation(fields: [resultId], references: [id])
@@ -123,6 +124,7 @@ model IdentificationResult {
 model IdentificationQuestionResult {
   id         String                 @id @default(auto()) @map("_id") @db.ObjectId
   isCorrect  Boolean
+  answer     String                 @default("Unknown")
   resultId   String                 @db.ObjectId
   result     IdentificationResult   @relation(fields: [resultId], references: [id])
   questionId String                 @db.ObjectId
