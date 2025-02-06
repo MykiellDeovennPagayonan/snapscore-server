@@ -3,7 +3,6 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
-  Body,
   BadRequestException,
   Param,
   ParseFilePipe,

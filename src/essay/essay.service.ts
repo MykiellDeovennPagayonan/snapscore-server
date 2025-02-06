@@ -24,11 +24,15 @@ export class EssayService {
         throw new BadRequestException('Invalid assessment ID format');
       }
 
+      console.log('Step 1: Saving Image');
+
       // 1. Upload the image and get the URL
       const uploadResult = await this.uploadService.uploadFile(
         `essays/${assessmentId}-${Date.now()}`,
         file,
       );
+
+      console.log('Step 2: Finding Assessment Data');
 
       // 2. Get assessment details from database
       const assessment = await prisma.essayAssessment.findUnique({
@@ -51,18 +55,22 @@ export class EssayService {
       }
 
       // Create a mapping of question sequence to question data
-      const questionMap = new Map(
-        assessment.essayQuestions.map((q, index) => [
-          (index + 1).toString(),
-          {
-            id: q.id,
-            criteriaIds: new Set(q.essayCriteria.map((c) => c.id)),
-          },
-        ]),
-      );
+      // const questionMap = new Map(
+      //   assessment.essayQuestions.map((q, index) => [
+      //     (index + 1).toString(),
+      //     {
+      //       id: q.id,
+      //       criteriaIds: new Set(q.essayCriteria.map((c) => c.id)),
+      //     },
+      //   ]),
+      // );
+
+      console.log('Step 3: Converting Image to Base64');
 
       // 3. Convert image to base64 for OpenAI
       const imageBase64 = file.buffer.toString('base64');
+
+      const essayCriteria = assessment.essayQuestions[0].essayCriteria;
 
       // 4. Create the evaluation prompt
       const messages: ChatCompletionMessageParam[] = [
@@ -85,15 +93,19 @@ export class EssayService {
         },
       ];
 
+      console.log('Step 4: AI Evaluates the Essay');
+
       // 5. Get AI evaluation
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages,
         temperature: 0.7,
-        max_tokens: 3000,
+        max_tokens: 9000,
         tools: [getEvaluationTool(assessment)],
         tool_choice: { type: 'function', function: { name: 'evaluate_essay' } },
       });
+
+      console.log('Step 5: Save the Results');
 
       // 6. Process AI response
       if (response.choices[0].message.tool_calls) {
@@ -102,54 +114,90 @@ export class EssayService {
         );
 
         // 7. Save results with validation
-        const result = await prisma.essayResult.create({
-          data: {
-            studentName: evaluationData.studentName,
-            score: evaluationData.totalScore,
-            assessmentId,
-            paperImage: uploadResult.url,
-            questionResults: {
-              create: evaluationData.questionResults.map((qResult) => {
-                const questionData = questionMap.get(qResult.questionId);
-                if (!questionData) {
-                  throw new BadRequestException(
-                    `Invalid question ID: ${qResult.questionId}`,
-                  );
-                }
+        console.log(evaluationData);
+        // console.log(evaluationData.questionResults[0].criteriaResults);
 
-                // Validate that all criteria belong to this question
-                qResult.criteriaResults.forEach((cResult) => {
-                  if (!questionData.criteriaIds.has(cResult.criteriaId)) {
-                    throw new BadRequestException(
-                      `Invalid criteria ID: ${cResult.criteriaId} for question ${qResult.questionId}`,
-                    );
-                  }
-                });
+        const questionResults: QuestionResults =
+          evaluationData.questionResults.map((questionResult) => {
+            console.log(questionResult);
+            return {
+              questionId: questionResult.questionId,
+              answer: questionResult.answer,
+              score: questionResult.score,
+              essayCriteriaResults: questionResult.criteriaResults.map(
+                (criteriaresult) => {
+                  return {
+                    criteriaId: criteriaresult.criteriaId,
+                    score: criteriaresult.score,
+                  };
+                },
+              ),
+            };
+          });
 
-                return {
-                  answer: qResult.answer,
-                  score: qResult.score,
-                  questionId: questionData.id,
-                  essayCriteriaResults: {
-                    create: qResult.criteriaResults.map((cResult) => ({
-                      score: cResult.score,
-                      criteriaId: cResult.criteriaId,
-                    })),
-                  },
-                };
-              }),
-            },
-          },
-          include: {
-            questionResults: {
-              include: {
-                essayCriteriaResults: true,
-              },
-            },
-          },
-        });
+        // console.log(questionResults);
+        // console.log(questionResults[0].essayCriteriaResults);
+
+        const saveData = {
+          studentName: evaluationData.studentName,
+          assessmentId,
+          score: evaluationData.totalScore,
+          paperImage: uploadResult.url,
+          questionResults: questionResults,
+        };
+
+        const result = await this.addEssayResult(saveData);
+        console.log(result);
 
         return result;
+        // const result = await prisma.essayResult.create({
+        //   data: {
+        //     studentName: evaluationData.studentName,
+        //     score: evaluationData.totalScore,
+        //     assessmentId,
+        //     paperImage: uploadResult.url,
+        //     questionResults: {
+        //       create: evaluationData.questionResults.map((qResult, index) => {
+        //         const questionData = questionMap.get((index + 1).toString());
+        //         if (!questionData) {
+        //           throw new BadRequestException(
+        //             `Invalid question ID: ${qResult.questionId}`,
+        //           );
+        //         }
+
+        //         // Validate that all criteria belong to this question
+        //         qResult.criteriaResults.forEach((cResult) => {
+        //           if (!questionData.criteriaIds.has(cResult.criteriaId)) {
+        //             throw new BadRequestException(
+        //               `Invalid criteria ID: ${cResult.criteriaId} for question ${qResult.questionId}`,
+        //             );
+        //           }
+        //         });
+
+        //         return {
+        //           answer: qResult.answer,
+        //           score: qResult.score,
+        //           questionId: questionData.id,
+        //           essayCriteriaResults: {
+        //             create: qResult.criteriaResults.map((cResult) => ({
+        //               score: cResult.score,
+        //               criteriaId: cResult.criteriaId,
+        //             })),
+        //           },
+        //         };
+        //       }),
+        //     },
+        //   },
+        //   include: {
+        //     questionResults: {
+        //       include: {
+        //         essayCriteriaResults: true,
+        //       },
+        //     },
+        //   },
+        // });
+
+        // return result;
       }
 
       throw new BadRequestException('Failed to evaluate essay');
@@ -165,26 +213,23 @@ export class EssayService {
     studentName: string;
     assessmentId: string;
     score: number;
-    questionResults: {
-      questionId: string;
-      answer: string;
-      score: number;
-      essayCriteriaResults: {
-        score: number;
-      }[];
-    }[];
+    paperImage: string;
+    questionResults: QuestionResults;
   }) {
     return prisma.essayResult.create({
       data: {
         studentName: data.studentName,
         assessmentId: data.assessmentId,
         score: data.score,
+        paperImage: data.paperImage,
         questionResults: {
           create: data.questionResults.map((result) => ({
+            questionId: result.questionId,
             score: result.score,
             answer: result.answer,
             essayCriteriaResults: {
               create: result.essayCriteriaResults.map((criteriaResult) => ({
+                criteriaId: criteriaResult.criteriaId,
                 score: criteriaResult.score,
               })),
             },
@@ -321,3 +366,15 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
     },
   };
 }
+
+type QuestionResults = {
+  questionId: string;
+  answer: string;
+  score: number;
+  essayCriteriaResults: EssayCriteriaResult;
+}[];
+
+type EssayCriteriaResult = {
+  criteriaId: string;
+  score: number;
+}[];
