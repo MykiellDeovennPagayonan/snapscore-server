@@ -9,12 +9,7 @@ export class EssayResultsService {
         assessment: true,
         questionResults: {
           include: {
-            question: true,
-            essayCriteriaResults: {
-              include: {
-                criteria: true,
-              },
-            },
+            essayCriteriaResults: true,
           },
         },
       },
@@ -28,12 +23,7 @@ export class EssayResultsService {
         assessment: true,
         questionResults: {
           include: {
-            question: true,
-            essayCriteriaResults: {
-              include: {
-                criteria: true,
-              },
-            },
+            essayCriteriaResults: true,
           },
         },
       },
@@ -117,14 +107,13 @@ export class EssayResultsService {
         assessment: true,
         questionResults: {
           include: {
-            question: true,
             essayCriteriaResults: {
               include: {
-                criteria: {
-                  include: {
-                    rubrics: true,
-                  },
-                },
+                // criteria: {
+                //   include: {
+                //     rubrics: true,
+                //   },
+                // },
               },
             },
           },
@@ -136,22 +125,22 @@ export class EssayResultsService {
     });
   }
 
-  async getResultsByQuestionId(questionId: string) {
-    return prisma.essayQuestionResult.findMany({
-      where: { questionId },
-      include: {
-        result: {
-          include: {
-            assessment: true,
-          },
-        },
-        question: true,
-        essayCriteriaResults: {
-          include: {
-            criteria: true,
-          },
-        },
-      },
-    });
-  }
+  // async getResultsByQuestionId(questionId: string) {
+  //   return prisma.essayQuestionResult.findMany({
+  //     where: { questionId },
+  //     include: {
+  //       result: {
+  //         include: {
+  //           assessment: true,
+  //         },
+  //       },
+  //       question: true,
+  //       essayCriteriaResults: {
+  //         include: {
+  //           criteria: true,
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
 }
