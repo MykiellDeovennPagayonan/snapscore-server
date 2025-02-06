@@ -17,17 +17,35 @@ export class EssayResultsService {
   }
 
   async getEssayResultById(id: string) {
-    return prisma.essayResult.findUnique({
+    const result = await prisma.essayResult.findUnique({
       where: { id },
       include: {
-        assessment: true,
+        assessment: {
+          include: {
+            essayQuestions: {
+              include: {
+                essayCriteria: true,
+              },
+            },
+          },
+        },
         questionResults: {
           include: {
-            essayCriteriaResults: true,
+            question: true,
+            essayCriteriaResults: {
+              include: {
+                criteria: true,
+              },
+            },
           },
         },
       },
     });
+    if (!result) {
+      throw new Error('Essay result not found');
+    }
+    console.log(result.questionResults[0].essayCriteriaResults[0].criteria);
+    return result;
   }
 
   async addEssayResult(data: {

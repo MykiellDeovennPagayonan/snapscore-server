@@ -20,6 +20,7 @@ export class EssayResultsController {
 
   @Get(':id')
   async getEssayResultById(@Param('id') id: string) {
+    console.log(id);
     return this.essayResultsService.getEssayResultById(id);
   }
 
