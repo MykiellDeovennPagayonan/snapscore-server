@@ -75,9 +75,11 @@ export class EssayService {
           content: [
             {
               type: 'image_url',
-              image_url: {
-                url: `data:${file.mimetype};base64,${imageBase64}`,
-              },
+              image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+            },
+            {
+              type: 'text',
+              text: `Criteria: ${JSON.stringify(essayCriteria)}`,
             },
           ],
         },
@@ -157,6 +159,46 @@ export class EssayService {
         `Failed to evaluate essay: ${error.message}`,
       );
     }
+  }
+
+  async addEssayResult(data: {
+    studentName: string;
+    assessmentId: string;
+    score: number;
+    questionResults: {
+      questionId: string;
+      answer: string;
+      score: number;
+      essayCriteriaResults: {
+        score: number;
+      }[];
+    }[];
+  }) {
+    return prisma.essayResult.create({
+      data: {
+        studentName: data.studentName,
+        assessmentId: data.assessmentId,
+        score: data.score,
+        questionResults: {
+          create: data.questionResults.map((result) => ({
+            score: result.score,
+            answer: result.answer,
+            essayCriteriaResults: {
+              create: result.essayCriteriaResults.map((criteriaResult) => ({
+                score: criteriaResult.score,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        questionResults: {
+          include: {
+            essayCriteriaResults: true,
+          },
+        },
+      },
+    });
   }
 }
 
