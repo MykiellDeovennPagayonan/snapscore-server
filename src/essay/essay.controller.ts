@@ -3,6 +3,7 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
+  Body,
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -13,6 +14,7 @@ import { EssayService } from './essay.service';
 @Controller('essay')
 export class EssayController {
   constructor(private essayService: EssayService) {}
+
   @Post()
   @UseInterceptors(
     FileInterceptor('image', {
@@ -36,12 +38,23 @@ export class EssayController {
       },
     }),
   )
-  async uploadImage(@UploadedFile() file) {
+  async uploadImage(
+    @UploadedFile() file,
+    @Body('assessmentId') assessmentId: string,
+    @Body('essayCriteria')
+    essayCriteria: {
+      criteria: string;
+      maxScore: number;
+      rubrics: { score: string; description: string };
+    }[],
+  ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    const rating: number = await this.essayService.rateEssay(file.filename);
-    console.log(rating);
-    return rating;
+    return await this.essayService.rateEssay(
+      file.filename,
+      assessmentId,
+      essayCriteria,
+    );
   }
 }
