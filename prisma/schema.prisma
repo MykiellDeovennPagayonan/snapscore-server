@@ -84,6 +84,7 @@ model EssayResult {
   id              String                @id @default(auto()) @map("_id") @db.ObjectId
   studentName     String
   score           Int
+  paperImage      String                @default("notfound.jpg")
   assessmentId    String                @db.ObjectId
   assessment      EssayAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   createdAt       DateTime              @default(now())

@@ -1,12 +1,9 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { promises as fs } from 'fs';
-import { join } from 'path';
 import OpenAI from 'openai';
-import * as dotenv from 'dotenv';
+import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
 import { ChatCompletionTool } from 'openai/resources/index.mjs';
 import { prisma } from '../prisma';
-
-dotenv.config();
+import { UploadService } from '../upload/upload.service';
 
 const apiKey = process.env.OPENAI_API_KEY;
 const openai = new OpenAI({ apiKey });
@@ -15,42 +12,63 @@ const openai = new OpenAI({ apiKey });
 export class EssayService {
   private readonly logger = new Logger(EssayService.name);
 
-  async convertImageToBase64(filename: string): Promise<string> {
-    const filePath = join(process.cwd(), 'uploads', filename);
-    try {
-      await fs.access(filePath);
-      this.logger.log(`Reading file: ${filePath}`);
-      const fileBuffer = await fs.readFile(filePath);
-      await fs.unlink(filePath);
-      this.logger.log(`Deleted file: ${filePath}`);
-      return fileBuffer.toString('base64');
-    } catch (error) {
-      this.logger.error(`Error processing file ${filename}:`, error);
-      throw new BadRequestException(
-        `Failed to convert image: ${error.message}`,
-      );
-    }
+  constructor(private uploadService: UploadService) {}
+
+  private isValidId(id: string): boolean {
+    return /^[0-9a-fA-F]{24}$/.test(id);
   }
 
-  async rateEssay(
-    filename: string,
-    assessmentId: string,
-    essayCriteria: {
-      criteria: string;
-      maxScore: number;
-      rubrics: { score: string; description: string };
-    }[],
-  ): Promise<any> {
+  async rateEssay(file: Express.Multer.File, assessmentId: string) {
     try {
-      const imageBase64 = await this.convertImageToBase64(filename);
-      if (!imageBase64) {
-        throw new BadRequestException('Failed to convert image to Base64');
+      if (!this.isValidId(assessmentId)) {
+        throw new BadRequestException('Invalid assessment ID format');
       }
 
-      const messages: ChatCompletionTool[] = [
+      // 1. Upload the image and get the URL
+      const uploadResult = await this.uploadService.uploadFile(
+        `essays/${assessmentId}-${Date.now()}`,
+        file,
+      );
+
+      // 2. Get assessment details from database
+      const assessment = await prisma.essayAssessment.findUnique({
+        where: { id: assessmentId },
+        include: {
+          essayQuestions: {
+            include: {
+              essayCriteria: {
+                include: {
+                  rubrics: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!assessment) {
+        throw new BadRequestException('Assessment not found');
+      }
+
+      // Create a mapping of question sequence to question data
+      const questionMap = new Map(
+        assessment.essayQuestions.map((q, index) => [
+          (index + 1).toString(),
+          {
+            id: q.id,
+            criteriaIds: new Set(q.essayCriteria.map((c) => c.id)),
+          },
+        ]),
+      );
+
+      // 3. Convert image to base64 for OpenAI
+      const imageBase64 = file.buffer.toString('base64');
+
+      // 4. Create the evaluation prompt
+      const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `Evaluate the essay based on the following criteria. Return scores for each criterion along with a total score. Also identify the student's name.`,
+          content: `You are an essay evaluation assistant. Evaluate the essay in the image according to the following questions and criteria. For each criterion, provide a score based on the rubric description and the maximum possible score specified. If there are no rubrics available, score it according to the name of the criteria and the maximum score. Make sure to utilize the full range of possible scores for each criterion based on its maxScore. Number each question starting from 1. Consider possible erasures or corrections in the essay.`,
         },
         {
           role: 'user',
@@ -67,55 +85,79 @@ export class EssayService {
         },
       ];
 
+      // 5. Get AI evaluation
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages,
-        temperature: 1,
-        max_tokens: 5000,
-        tools: functionCallingTools,
+        temperature: 0.7,
+        max_tokens: 3000,
+        tools: [getEvaluationTool(assessment)],
+        tool_choice: { type: 'function', function: { name: 'evaluate_essay' } },
       });
 
-      if (
-        response.choices[0].message.tool_calls &&
-        response.choices[0].message.tool_calls[0].function.name === 'rate_essay'
-      ) {
-        const data =
-          response.choices[0].message.tool_calls[0].function.arguments;
-        const parsedData = JSON.parse(data);
-        let totalScore = 0;
-        const studentName = parsedData.studentName;
+      // 6. Process AI response
+      if (response.choices[0].message.tool_calls) {
+        const evaluationData = JSON.parse(
+          response.choices[0].message.tool_calls[0].function.arguments,
+        );
 
-        console.log(parsedData.criteria[0]);
-        console.log(parsedData.criteria[0].essayCriteriaResults);
+        // 7. Save results with validation
+        const result = await prisma.essayResult.create({
+          data: {
+            studentName: evaluationData.studentName,
+            score: evaluationData.totalScore,
+            assessmentId,
+            paperImage: uploadResult.url,
+            questionResults: {
+              create: evaluationData.questionResults.map((qResult) => {
+                const questionData = questionMap.get(qResult.questionId);
+                if (!questionData) {
+                  throw new BadRequestException(
+                    `Invalid question ID: ${qResult.questionId}`,
+                  );
+                }
 
-        const questionResults = parsedData.criteria.map((criterion) => {
-          totalScore += criterion.rating;
-          return {
-            questionId: assessmentId,
-            score: criterion.rating,
-            essayCriteriaResults: [
-              {
-                score: criterion.rating,
+                // Validate that all criteria belong to this question
+                qResult.criteriaResults.forEach((cResult) => {
+                  if (!questionData.criteriaIds.has(cResult.criteriaId)) {
+                    throw new BadRequestException(
+                      `Invalid criteria ID: ${cResult.criteriaId} for question ${qResult.questionId}`,
+                    );
+                  }
+                });
+
+                return {
+                  answer: qResult.answer,
+                  score: qResult.score,
+                  questionId: questionData.id,
+                  essayCriteriaResults: {
+                    create: qResult.criteriaResults.map((cResult) => ({
+                      score: cResult.score,
+                      criteriaId: cResult.criteriaId,
+                    })),
+                  },
+                };
+              }),
+            },
+          },
+          include: {
+            questionResults: {
+              include: {
+                essayCriteriaResults: true,
               },
-            ],
-          };
+            },
+          },
         });
 
-        console.log(questionResults);
-        console.log(questionResults[0].essayCriteriaResults);
-
-        return this.addEssayResult({
-          studentName,
-          assessmentId,
-          score: totalScore,
-          questionResults,
-        });
-        // return 'hello';
-      } else {
-        throw new BadRequestException('Failed to rate the essay');
+        return result;
       }
+
+      throw new BadRequestException('Failed to evaluate essay');
     } catch (error) {
-      throw new BadRequestException(`Error rating essay: ${error.message}`);
+      this.logger.error('Error evaluating essay:', error);
+      throw new BadRequestException(
+        `Failed to evaluate essay: ${error.message}`,
+      );
     }
   }
 
@@ -160,51 +202,122 @@ export class EssayService {
   }
 }
 
-const rateEssay: ChatCompletionTool = {
-  type: 'function',
-  function: {
-    name: 'rate_essay',
-    description:
-      'Use this function to evaluate an essay based on multiple criteria.',
-    parameters: {
-      type: 'object',
-      properties: {
-        essayContent: {
-          type: 'string',
-          description: 'The full text of the essay to be evaluated.',
-        },
-        studentName: {
-          type: 'string',
-          description:
-            'Name of the student who wrote the essay. If not indicated, put "No name".',
-        },
-        criteria: {
-          type: 'array',
-          description: 'Array of criteria to rate the essay on.',
-          items: {
-            type: 'object',
-            properties: {
-              name: {
-                type: 'string',
-                description: 'Name of the evaluation criterion.',
+function getEvaluationTool(assessment: any): ChatCompletionTool {
+  // Create a structured representation of questions and their criteria
+  const questions = assessment.essayQuestions.map((q, index) => ({
+    sequence: index + 1,
+    criteria: q.essayCriteria.map((c) => ({
+      id: c.id,
+      name: c.name || `Criteria ${c.id}`,
+      description: c.description || '',
+      maxScore: c.maxScore, // Include maxScore
+      rubrics: c.rubrics || [],
+    })),
+  }));
+
+  questions.forEach((q) => {
+    console.log(`Question ${q.sequence}:`);
+    q.criteria.forEach((c) => {
+      console.log(`  - Criteria ${c.id}: ${c.name}`);
+      console.log(`    Max Score: ${c.maxScore} points`);
+      console.log('    Rubric Levels:');
+      c.rubrics.forEach((r) => {
+        console.log(`      - Score ${r.score}: ${r.description}`);
+      });
+    });
+  });
+
+  // Create a description of the assessment structure
+  const assessmentDescription: string = questions
+    .map((q) => {
+      const criteriaDesc: string = q.criteria
+        .map(
+          (c) =>
+            `    - Criteria ${c.id}: ${c.name}${
+              c.description ? ` (${c.description})` : ''
+            }\n      Max Score: ${c.maxScore} points\n      Rubric Levels:${c.rubrics
+              .map((r) => `\n        - Score ${r.score}: ${r.description}`)
+              .join('')}`,
+        )
+        .join('\n');
+
+      return `Question ${q.sequence}:\n${criteriaDesc}`;
+    })
+    .join('\n\n');
+
+  return {
+    type: 'function',
+    function: {
+      name: 'evaluate_essay',
+      description: `Evaluate an essay based on ${
+        questions.length
+      } questions and their criteria. Score each criterion based on its specified maximum score. The total possible score is ${questions.reduce(
+        (total, q) =>
+          total + q.criteria.reduce((subtotal, c) => subtotal + c.maxScore, 0),
+        0,
+      )}. Use question numbers (1, 2, 3, etc.) for questionId. Use the exact criteria IDs provided in the structure below:\n\n${assessmentDescription}`,
+      parameters: {
+        type: 'object',
+        properties: {
+          studentName: {
+            type: 'string',
+            description:
+              'Name of the student if visible on the essay, otherwise "Unknown"',
+          },
+          totalScore: {
+            type: 'number',
+            description: 'Total score for the essay across all criteria',
+          },
+          questionResults: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                questionId: {
+                  type: 'string',
+                  description:
+                    'Use the exact question id from the assessment structure above',
+                },
+                answer: {
+                  type: 'string',
+                  description: 'The answer provided in the essay',
+                },
+                score: {
+                  type: 'number',
+                  description:
+                    'Total score for this question (sum of criteria scores)',
+                },
+                criteriaResults: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      criteriaId: {
+                        type: 'string',
+                        description:
+                          'Use the exact criteria ID from the assessment structure above',
+                      },
+                      score: {
+                        type: 'number',
+                        description:
+                          'Score for this specific criteria (must not exceed maxScore)',
+                      },
+                      justification: {
+                        type: 'string',
+                        description:
+                          'Detailed explanation for the score given, referencing the rubric levels',
+                      },
+                    },
+                    required: ['criteriaId', 'score', 'justification'],
+                  },
+                },
               },
-              rating: {
-                type: 'number',
-                description: 'Rating for this criterion.',
-              },
-              maxRating: {
-                type: 'number',
-                description: 'Maximum possible rating for this criterion.',
-              },
+              required: ['questionId', 'answer', 'score', 'criteriaResults'],
             },
-            required: ['name', 'rating', 'maxRating'],
           },
         },
+        required: ['studentName', 'totalScore', 'questionResults'],
       },
-      required: ['essayContent', 'criteria', 'studentName'],
-      additionalProperties: false,
     },
-  },
-};
-
-const functionCallingTools: ChatCompletionTool[] = [rateEssay];
+  };
+}
