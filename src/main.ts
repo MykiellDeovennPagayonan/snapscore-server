@@ -1,23 +1,15 @@
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import express from 'express';
-import serverless from 'serverless-http';
 import { AppModule } from './app.module';
 
-const server = express();
-
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+  const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: '*',
+    origin: '*', // Allow requests from this origin
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+    credentials: true, // Allow cookies/auth headers
   });
 
-  await app.init();
+  await app.listen(3001);
 }
-
 bootstrap();
-
-export const handler = serverless(server);
