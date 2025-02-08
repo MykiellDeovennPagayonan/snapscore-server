@@ -1,7 +1,9 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import OpenAI from 'openai';
-import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
-import { ChatCompletionTool } from 'openai/resources/index.mjs';
+import {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from 'openai/resources';
 import { prisma } from '../prisma';
 import { UploadService } from '../upload/upload.service';
 
@@ -216,6 +218,7 @@ export class EssayService {
     paperImage: string;
     questionResults: QuestionResults;
   }) {
+    console.log('Adding Essay Result', data);
     return prisma.essayResult.create({
       data: {
         studentName: data.studentName,
@@ -247,6 +250,138 @@ export class EssayService {
   }
 }
 
+// function getEvaluationTool(assessment: any): ChatCompletionTool {
+//   // Create a structured representation of questions and their criteria
+//   const questions = assessment.essayQuestions.map((q, index) => ({
+//     sequence: index + 1,
+//     criteria: q.essayCriteria.map((c) => ({
+//       id: c.id,
+//       name: c.name || `Criteria ${c.id}`,
+//       description: c.description || '',
+//       maxScore: c.maxScore, // Include maxScore
+//       rubrics: c.rubrics || [],
+//     })),
+//   }));
+
+//   questions.forEach((q) => {
+//     console.log(`Question ${q.sequence}:`);
+//     q.criteria.forEach((c) => {
+//       console.log(`  - Criteria ${c.id}: ${c.name}`);
+//       console.log(`    Max Score: ${c.maxScore} points`);
+//       console.log('    Rubric Levels:');
+//       c.rubrics.forEach((r) => {
+//         console.log(`      - Score ${r.score}: ${r.description}`);
+//       });
+//     });
+//   });
+
+//   // Create a description of the assessment structure
+//   const assessmentDescription: string = questions
+//     .map((q) => {
+//       const criteriaDesc: string = q.criteria
+//         .map(
+//           (c) =>
+//             `    - Criteria ${c.id}: ${c.name}${
+//               c.description ? ` (${c.description})` : ''
+//             }\n      Max Score: ${c.maxScore} points\n      Rubric Levels:${c.rubrics
+//               .map((r) => `\n        - Score ${r.score}: ${r.description}`)
+//               .join('')}`,
+//         )
+//         .join('\n');
+
+//       return `Question ${q.sequence}:\n${criteriaDesc}`;
+//     })
+//     .join('\n\n');
+
+//   return {
+//     type: 'function',
+//     function: {
+//       name: 'evaluate_essay',
+//       description: `Evaluate an essay based on ${
+//         questions.length
+//       } questions and their criteria. Score each criterion based on its specified maximum score. The total possible score is ${questions.reduce(
+//         (total, q) =>
+//           total + q.criteria.reduce((subtotal, c) => subtotal + c.maxScore, 0),
+//         0,
+//       )}. Use question numbers (1, 2, 3, etc.) for questionId. Use the exact criteria IDs provided in the structure below:\n\n${assessmentDescription}`,
+//       parameters: {
+//         type: 'object',
+//         properties: {
+//           studentName: {
+//             type: 'string',
+//             description:
+//               'Name of the student if visible on the essay, otherwise "Unknown"',
+//           },
+//           totalScore: {
+//             type: 'number',
+//             description: 'Total score for the essay across all criteria',
+//           },
+//           questionResults: {
+//             type: 'array',
+//             items: {
+//               type: 'object',
+//               properties: {
+//                 questionId: {
+//                   type: 'string',
+//                   description:
+//                     'Use the exact question id from the assessment structure above',
+//                 },
+//                 answer: {
+//                   type: 'string',
+//                   description: 'The answer provided in the essay',
+//                 },
+//                 score: {
+//                   type: 'number',
+//                   description:
+//                     'Total score for this question (sum of criteria scores)',
+//                 },
+//                 criteriaResults: {
+//                   type: 'array',
+//                   items: {
+//                     type: 'object',
+//                     properties: {
+//                       criteriaId: {
+//                         type: 'string',
+//                         description:
+//                           'Use the exact criteria ID from the assessment structure above',
+//                       },
+//                       score: {
+//                         type: 'number',
+//                         description:
+//                           'Score for this specific criteria (must not exceed maxScore)',
+//                       },
+//                       justification: {
+//                         type: 'string',
+//                         description:
+//                           'Detailed explanation for the score given, referencing the rubric levels',
+//                       },
+//                     },
+//                     required: ['criteriaId', 'score', 'justification'],
+//                   },
+//                 },
+//               },
+//               required: ['questionId', 'answer', 'score', 'criteriaResults'],
+//             },
+//           },
+//         },
+//         required: ['studentName', 'totalScore', 'questionResults'],
+//       },
+//     },
+//   };
+// }
+
+type QuestionResults = {
+  questionId: string;
+  answer: string;
+  score: number;
+  essayCriteriaResults: EssayCriteriaResult;
+}[];
+
+type EssayCriteriaResult = {
+  criteriaId: string;
+  score: number;
+}[];
+
 function getEvaluationTool(assessment: any): ChatCompletionTool {
   // Create a structured representation of questions and their criteria
   const questions = assessment.essayQuestions.map((q, index) => ({
@@ -273,7 +408,7 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
   });
 
   // Create a description of the assessment structure
-  const assessmentDescription: string = questions
+  const description: string = questions
     .map((q) => {
       const criteriaDesc: string = q.criteria
         .map(
@@ -294,13 +429,7 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
     type: 'function',
     function: {
       name: 'evaluate_essay',
-      description: `Evaluate an essay based on ${
-        questions.length
-      } questions and their criteria. Score each criterion based on its specified maximum score. The total possible score is ${questions.reduce(
-        (total, q) =>
-          total + q.criteria.reduce((subtotal, c) => subtotal + c.maxScore, 0),
-        0,
-      )}. Use question numbers (1, 2, 3, etc.) for questionId. Use the exact criteria IDs provided in the structure below:\n\n${assessmentDescription}`,
+      description,
       parameters: {
         type: 'object',
         properties: {
@@ -321,7 +450,7 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
                 questionId: {
                   type: 'string',
                   description:
-                    'Use the exact question id from the assessment structure above',
+                    'Use the full MongoDB ID provided in the mapping above',
                 },
                 answer: {
                   type: 'string',
@@ -329,8 +458,7 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
                 },
                 score: {
                   type: 'number',
-                  description:
-                    'Total score for this question (sum of criteria scores)',
+                  description: 'Total score for this question',
                 },
                 criteriaResults: {
                   type: 'array',
@@ -340,17 +468,15 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
                       criteriaId: {
                         type: 'string',
                         description:
-                          'Use the exact criteria ID from the assessment structure above',
+                          'The criteria ID from the assessment structure',
                       },
                       score: {
                         type: 'number',
-                        description:
-                          'Score for this specific criteria (must not exceed maxScore)',
+                        description: 'Score for this criteria (≤ maxScore)',
                       },
                       justification: {
                         type: 'string',
-                        description:
-                          'Detailed explanation for the score given, referencing the rubric levels',
+                        description: 'Explanation for the score given',
                       },
                     },
                     required: ['criteriaId', 'score', 'justification'],
@@ -367,14 +493,35 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
   };
 }
 
-type QuestionResults = {
-  questionId: string;
-  answer: string;
-  score: number;
-  essayCriteriaResults: EssayCriteriaResult;
-}[];
+// Add this validation function
+// function validateQuestionResults(
+//   questionResults: QuestionResults,
+//   assessment: any,
+// ): void {
+//   const validQuestionIds = new Set(
+//     assessment.essayQuestions.map((q: any) => q.id),
+//   );
 
-type EssayCriteriaResult = {
-  criteriaId: string;
-  score: number;
-}[];
+//   for (const result of questionResults) {
+//     if (!validQuestionIds.has(result.questionId)) {
+//       throw new BadRequestException(`Invalid questionId: ${result.questionId}`);
+//     }
+
+//     // Find the corresponding question
+//     const question = assessment.essayQuestions.find(
+//       (q: any) => q.id === result.questionId,
+//     );
+
+//     const validCriteriaIds = new Set(
+//       question.essayCriteria.map((c: any) => c.id),
+//     );
+
+//     for (const criteriaResult of result.essayCriteriaResults) {
+//       if (!validCriteriaIds.has(criteriaResult.criteriaId)) {
+//         throw new BadRequestException(
+//           `Invalid criteriaId: ${criteriaResult.criteriaId} for question ${result.questionId}`,
+//         );
+//       }
+//     }
+//   }
+// }
