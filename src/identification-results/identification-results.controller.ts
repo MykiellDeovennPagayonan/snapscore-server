@@ -41,6 +41,7 @@ export class IdentificationResultsController {
       questionResults: {
         questionId: string;
         isCorrect: boolean;
+        answer: string;
       }[];
     },
   ) {
@@ -60,6 +61,21 @@ export class IdentificationResultsController {
     return this.identificationResultsService.updateIdentificationResult(
       id,
       updateIdentificationResultDto,
+    );
+  }
+
+  @Put('question/:id')
+  async updateIdentificationQuestionResult(
+    @Param('id') id: string,
+    @Body()
+    updateIdentificationQuestionResultDto: {
+      isCorrect?: boolean;
+    },
+  ) {
+    console.log('Updating question result');
+    return this.identificationResultsService.updateIdentificationQuestionResult(
+      id,
+      updateIdentificationQuestionResultDto,
     );
   }
 

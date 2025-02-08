@@ -25,9 +25,46 @@ export class EssayAssessmentController {
 
   @Post()
   async createEssayAssessment(
-    @Body() createDto: { name: string; userId: string },
+    @Body()
+    data: {
+      name: string;
+      firebaseId: string;
+      questions: {
+        question: string;
+        essayCriteria: {
+          criteria: string;
+          maxScore: number;
+          rubrics: {
+            score: string;
+            description: string;
+          }[];
+        }[];
+      }[];
+    },
   ) {
-    return this.essayService.createEssayAssessment(createDto);
+    return this.essayService.createEssayAssessment(data);
+  }
+
+  @Post('user')
+  async createEssayAssessmentById(
+    @Body()
+    data: {
+      name: string;
+      id: string;
+      questions: {
+        question: string;
+        essayCriteria: {
+          criteria: string;
+          maxScore: number;
+          rubrics: {
+            score: string;
+            description: string;
+          }[];
+        }[];
+      }[];
+    },
+  ) {
+    return this.essayService.createEssayAssessmentById(data);
   }
 
   @Put(':id')

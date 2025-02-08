@@ -22,7 +22,7 @@ model EssayAssessment {
   name           String
   essayQuestions EssayQuestion[]
   userId         String          @db.ObjectId
-  user           User            @relation(fields: [userId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   essayResults   EssayResult[]
@@ -33,7 +33,7 @@ model IdentificationAssessment {
   name                    String
   identificationQuestions IdentificationQuestion[]
   userId                  String                   @db.ObjectId
-  user                    User                     @relation(fields: [userId], references: [id])
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   identificationResults   IdentificationResult[]
@@ -41,10 +41,9 @@ model IdentificationAssessment {
 
 model IdentificationQuestion {
   id             String                         @id @default(auto()) @map("_id") @db.ObjectId
-  question       String
   correctAnswer  String
   assessmentId   String                         @db.ObjectId
-  assessment     IdentificationAssessment       @relation(fields: [assessmentId], references: [id])
+  assessment     IdentificationAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   createdAt      DateTime                       @default(now())
   updatedAt      DateTime                       @updatedAt
   QuestionResult IdentificationQuestionResult[]
@@ -55,7 +54,7 @@ model EssayQuestion {
   question      String
   essayCriteria EssayCriteria[]
   assessmentId  String                @db.ObjectId
-  assessment    EssayAssessment       @relation(fields: [assessmentId], references: [id])
+  assessment    EssayAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   EssayResult   EssayQuestionResult[]
@@ -67,7 +66,7 @@ model EssayCriteria {
   maxScore        Int
   rubrics         Rubric[]
   essayQuestionId String                @db.ObjectId
-  essayQuestion   EssayQuestion         @relation(fields: [essayQuestionId], references: [id])
+  essayQuestion   EssayQuestion         @relation(fields: [essayQuestionId], references: [id], onDelete: Cascade)
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   criteriaResults EssayCriteriaResult[]
@@ -78,26 +77,28 @@ model Rubric {
   score       String
   description String
   criteriaId  String        @db.ObjectId
-  criteria    EssayCriteria @relation(fields: [criteriaId], references: [id])
+  criteria    EssayCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
 }
 
 model EssayResult {
   id              String                @id @default(auto()) @map("_id") @db.ObjectId
   studentName     String
   score           Int
+  paperImage      String                @default("notfound.jpg")
   assessmentId    String                @db.ObjectId
-  assessment      EssayAssessment       @relation(fields: [assessmentId], references: [id])
+  assessment      EssayAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   createdAt       DateTime              @default(now())
   questionResults EssayQuestionResult[]
 }
 
 model EssayQuestionResult {
   id                   String                @id @default(auto()) @map("_id") @db.ObjectId
+  answer               String                @default("Unknown")
   score                Int
   resultId             String                @db.ObjectId
-  result               EssayResult           @relation(fields: [resultId], references: [id])
+  result               EssayResult           @relation(fields: [resultId], references: [id], onDelete: Cascade)
   questionId           String                @db.ObjectId
-  question             EssayQuestion         @relation(fields: [questionId], references: [id])
+  question             EssayQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   createdAt            DateTime              @default(now())
   essayCriteriaResults EssayCriteriaResult[]
 }
@@ -106,26 +107,29 @@ model EssayCriteriaResult {
   id               String              @id @default(auto()) @map("_id") @db.ObjectId
   score            Int
   questionResultId String              @db.ObjectId
-  questionResult   EssayQuestionResult @relation(fields: [questionResultId], references: [id])
+  questionResult   EssayQuestionResult @relation(fields: [questionResultId], references: [id], onDelete: Cascade)
   criteriaId       String              @db.ObjectId
-  criteria         EssayCriteria       @relation(fields: [criteriaId], references: [id])
+  criteria         EssayCriteria       @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
   createdAt        DateTime            @default(now())
 }
 
 model IdentificationResult {
   id              String                         @id @default(auto()) @map("_id") @db.ObjectId
   studentName     String
+  paperImage      String                         @default("notfound.jpg")
   assessmentId    String                         @db.ObjectId
-  assessment      IdentificationAssessment       @relation(fields: [assessmentId], references: [id])
+  assessment      IdentificationAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime                       @default(now())
   questionResults IdentificationQuestionResult[]
 }
 
 model IdentificationQuestionResult {
   id         String                 @id @default(auto()) @map("_id") @db.ObjectId
   isCorrect  Boolean
+  answer     String                 @default("Unknown")
   resultId   String                 @db.ObjectId
-  result     IdentificationResult   @relation(fields: [resultId], references: [id])
+  result     IdentificationResult   @relation(fields: [resultId], references: [id], onDelete: Cascade)
   questionId String                 @db.ObjectId
-  question   IdentificationQuestion @relation(fields: [questionId], references: [id])
+  question   IdentificationQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
   createdAt  DateTime               @default(now())
 }

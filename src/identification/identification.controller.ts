@@ -4,28 +4,18 @@ import {
   UploadedFile,
   UseInterceptors,
   BadRequestException,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
 import { IdentificationService } from './identification.service';
 
 @Controller('identification')
 export class IdentificationController {
   constructor(private identificationService: IdentificationService) {}
 
-  @Post()
+  @Post(':assessmentId')
   @UseInterceptors(
     FileInterceptor('image', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, callback) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-        },
-      }),
       fileFilter: (req, file, callback) => {
         if (!file.mimetype.match(/^image\/(jpg|jpeg|png|gif)$/)) {
           return callback(
@@ -37,14 +27,41 @@ export class IdentificationController {
       },
     }),
   )
-  async uploadImage(@UploadedFile() file) {
+  async uploadImage(
+    @Param('assessmentId') assessmentId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    const rating: number = await this.identificationService.gradeIdentification(
-      file.filename,
+    const result = await this.identificationService.processIdentification(
+      assessmentId,
+      file,
     );
-    console.log(rating);
-    return rating;
+    return result;
   }
+
+  // @Post()
+  // @UseInterceptors(
+  //   FileInterceptor('image', {
+  //     storage: diskStorage({
+  //       destination: './uploads',
+  //       filename: (req, file, callback) => {
+  //         const uniqueSuffix =
+  //           Date.now() + '-' + Math.round(Math.random() * 1e9);
+  //         const ext = extname(file.originalname);
+  //         callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+  //       },
+  //     }),
+  //     fileFilter: (req, file, callback) => {
+  //       if (!file.mimetype.match(/^image\/(jpg|jpeg|png|gif)$/)) {
+  //         return callback(
+  //           new BadRequestException('Only image files are allowed!'),
+  //           false,
+  //         );
+  //       }
+  //       callback(null, true);
+  //     },
+  //   }),
+  // )
 }

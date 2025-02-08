@@ -9,12 +9,7 @@ export class EssayResultsService {
         assessment: true,
         questionResults: {
           include: {
-            question: true,
-            essayCriteriaResults: {
-              include: {
-                criteria: true,
-              },
-            },
+            essayCriteriaResults: true,
           },
         },
       },
@@ -22,10 +17,18 @@ export class EssayResultsService {
   }
 
   async getEssayResultById(id: string) {
-    return prisma.essayResult.findUnique({
+    const result = await prisma.essayResult.findUnique({
       where: { id },
       include: {
-        assessment: true,
+        assessment: {
+          include: {
+            essayQuestions: {
+              include: {
+                essayCriteria: true,
+              },
+            },
+          },
+        },
         questionResults: {
           include: {
             question: true,
@@ -38,6 +41,11 @@ export class EssayResultsService {
         },
       },
     });
+    if (!result) {
+      throw new Error('Essay result not found');
+    }
+    console.log(result.questionResults[0].essayCriteriaResults[0].criteria);
+    return result;
   }
 
   async addEssayResult(data: {
@@ -46,6 +54,7 @@ export class EssayResultsService {
     score: number;
     questionResults: {
       questionId: string;
+      answer: string;
       score: number;
       essayCriteriaResults: {
         criteriaId: string;
@@ -61,6 +70,7 @@ export class EssayResultsService {
         questionResults: {
           create: data.questionResults.map((result) => ({
             score: result.score,
+            answer: result.answer,
             questionId: result.questionId,
             essayCriteriaResults: {
               create: result.essayCriteriaResults.map((criteriaResult) => ({
@@ -81,6 +91,20 @@ export class EssayResultsService {
     });
   }
 
+  async updateEssayQuestionResult(id: string, data: { score?: number }) {
+    return prisma.essayQuestionResult.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async updateEssayCriteriaResult(id: string, data: { score?: number }) {
+    return prisma.essayCriteriaResult.update({
+      where: { id },
+      data,
+    });
+  }
+
   async updateEssayResult(id: string, data: { score?: number }) {
     return prisma.essayResult.update({
       where: { id },
@@ -98,36 +122,44 @@ export class EssayResultsService {
     return prisma.essayResult.findMany({
       where: { assessmentId },
       include: {
+        assessment: true,
         questionResults: {
           include: {
             question: true,
             essayCriteriaResults: {
               include: {
-                criteria: true,
+                criteria: {
+                  include: {
+                    rubrics: true, // Include rubrics if needed
+                  },
+                },
               },
             },
           },
         },
       },
-    });
-  }
-
-  async getResultsByQuestionId(questionId: string) {
-    return prisma.essayQuestionResult.findMany({
-      where: { questionId },
-      include: {
-        result: {
-          include: {
-            assessment: true,
-          },
-        },
-        question: true,
-        essayCriteriaResults: {
-          include: {
-            criteria: true,
-          },
-        },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
   }
+
+  // async getResultsByQuestionId(questionId: string) {
+  //   return prisma.essayQuestionResult.findMany({
+  //     where: { questionId },
+  //     include: {
+  //       result: {
+  //         include: {
+  //           assessment: true,
+  //         },
+  //       },
+  //       question: true,
+  //       essayCriteriaResults: {
+  //         include: {
+  //           criteria: true,
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
 }

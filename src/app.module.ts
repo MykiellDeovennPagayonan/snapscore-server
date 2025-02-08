@@ -13,6 +13,9 @@ import { IdentificationResultsModule } from './identification-results/identifica
 import { EssayAssessmentModule } from './essay-assessment/essay-assessment.module';
 import { IdentificationAssessmentModule } from './identification-assessment/identification-assessment.module';
 import { AssessmentsModule } from './assessments/assessments.module';
+import { UploadController } from './upload/upload.controller';
+import { UploadService } from './upload/upload.service';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -28,8 +31,9 @@ import { AssessmentsModule } from './assessments/assessments.module';
     EssayAssessmentModule,
     IdentificationAssessmentModule,
     AssessmentsModule,
+    UploadModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, UploadController],
+  providers: [AppService, UploadService],
 })
 export class AppModule {}

@@ -5,38 +5,85 @@ import { prisma } from '../prisma';
 export class IdentificationAssessmentService {
   async getAllIdentificationAssessments() {
     return prisma.identificationAssessment.findMany({
-      include: { identificationQuestions: true, user: true },
+      include: { user: true, identificationResults: true },
     });
   }
 
   async getIdentificationAssessmentById(id: string) {
-    console.log('fetching identification assessment by id', id);
-    console.log('Got here');
     return prisma.identificationAssessment.findUnique({
       where: { id },
       include: {
-        identificationQuestions: true,
-        identificationResults: true,
         user: true,
+        identificationResults: true,
+        identificationQuestions: true,
       },
     });
   }
-
-  async getIdentificationAssessmentByUserId(id: string) {
-    return prisma.identificationAssessment.findMany({
+  async getIdentificationAssessmentsByUserId(id: string) {
+    console.log(id);
+    const assessments = await prisma.identificationAssessment.findMany({
       where: { userId: id },
       include: {
-        identificationQuestions: true,
-        identificationResults: true,
         user: true,
+        identificationResults: true,
+        identificationQuestions: true, // Add this to match your Flutter model
+      },
+    });
+
+    return assessments || []; // Return empty array if no assessments found
+  }
+
+  async createIdentificationAssessment(data: {
+    name: string;
+    firebaseId: string;
+    questions: { correctAnswer: string }[];
+  }) {
+    const { name, firebaseId, questions } = data;
+
+    const user = await prisma.user.findUnique({
+      where: { firebaseId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return prisma.identificationAssessment.create({
+      data: {
+        name,
+        userId: user.id,
+        identificationQuestions: {
+          create: questions.map((question) => ({
+            correctAnswer: question.correctAnswer,
+          })),
+        },
+      },
+      include: {
+        identificationQuestions: true,
       },
     });
   }
 
-  async createIdentificationAssessment(data: { name: string; userId: string }) {
-    console.log('Identification created');
+  async createIdentificationAssessmentById(data: {
+    name: string;
+    id: string;
+    questions: { correctAnswer: string }[];
+  }) {
+    const { name, id, questions = [] } = data;
+
     return prisma.identificationAssessment.create({
-      data,
+      data: {
+        name,
+        userId: id,
+        identificationQuestions: {
+          create: questions.map((question) => ({
+            correctAnswer: question.correctAnswer,
+          })),
+        },
+      },
+      include: {
+        identificationQuestions: true,
+      },
     });
   }
 

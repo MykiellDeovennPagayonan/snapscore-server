@@ -31,6 +31,7 @@ export class IdentificationResultsService {
     assessmentId: string;
     questionResults: {
       isCorrect: boolean;
+      answer: string;
       questionId: string;
     }[];
   }) {
@@ -38,10 +39,12 @@ export class IdentificationResultsService {
       data: {
         studentName: data.studentName,
         assessmentId: data.assessmentId,
+        paperImage: 'notfound.jpg',
         questionResults: {
           create: data.questionResults.map((result) => ({
             isCorrect: result.isCorrect,
             questionId: result.questionId,
+            answer: result.answer,
           })),
         },
       },
@@ -55,19 +58,21 @@ export class IdentificationResultsService {
     });
   }
 
-  async deleteIdentificationResult(id: string) {
-    return prisma.identificationResult.delete({
-      where: { id },
+  async updateIdentificationQuestionResult(
+    id: string,
+    data: { isCorrect?: boolean },
+  ) {
+    return prisma.identificationQuestionResult.update({
+      where: {
+        id: id,
+      },
+      data,
     });
   }
 
-  async getResultsByStudentAssessmentId(assessmentId: string) {
-    console.log('got results by student assessment id');
-    return prisma.identificationResult.findMany({
-      where: { assessmentId },
-      include: {
-        questionResults: true,
-      },
+  async deleteIdentificationResult(id: string) {
+    return prisma.identificationResult.delete({
+      where: { id },
     });
   }
 
@@ -83,5 +88,41 @@ export class IdentificationResultsService {
         question: true,
       },
     });
+  }
+
+  async getResultsByStudentAssessmentId(assessmentId: string) {
+    console.log(await prisma.identificationQuestionResult.findMany({}));
+    return prisma.identificationResult.findMany({
+      where: { assessmentId },
+      include: {
+        assessment: true,
+        questionResults: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async calculateScore(resultId: string) {
+    const result = await prisma.identificationResult.findUnique({
+      where: { id: resultId },
+      include: {
+        questionResults: true,
+      },
+    });
+
+    if (!result) return null;
+
+    const correctAnswers = result.questionResults.filter(
+      (qr) => qr.isCorrect,
+    ).length;
+    const total = result.questionResults.length;
+
+    return {
+      score: correctAnswers,
+      total,
+      percentage: (correctAnswers / total) * 100,
+    };
   }
 }
