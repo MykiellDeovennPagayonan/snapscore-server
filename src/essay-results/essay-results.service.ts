@@ -125,13 +125,14 @@ export class EssayResultsService {
         assessment: true,
         questionResults: {
           include: {
+            question: true,
             essayCriteriaResults: {
               include: {
-                // criteria: {
-                //   include: {
-                //     rubrics: true,
-                //   },
-                // },
+                criteria: {
+                  include: {
+                    rubrics: true, // Include rubrics if needed
+                  },
+                },
               },
             },
           },
