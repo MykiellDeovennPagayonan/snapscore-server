@@ -9,7 +9,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class UploadService {
