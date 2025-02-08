@@ -20,13 +20,13 @@ export class UploadService {
 
   constructor() {
     this.s3Client = new S3Client({
-      region: process.env.AWS_REGION,
+      region: process.env.AWS_REGION_NEST,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY,
-        secretAccessKey: process.env.AWS_SECRET_KEY,
+        accessKeyId: process.env.AWS_ACCESS_NEST_KEY,
+        secretAccessKey: process.env.AWS_SECRET_NEST_KEY,
       },
     });
-    this.bucket = process.env.AWS_BUCKET_NAME;
+    this.bucket = process.env.AWS_BUCKET_NEST_NAME;
   }
 
   private sanitizeFileName(fileName: string): string {
