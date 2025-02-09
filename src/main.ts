@@ -5,9 +5,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: '*', // Allow requests from this origin
+    origin: [
+      'https://snapscore-web.vercel.app',
+      'http://localhost:3000',
+      '*',
+      'https://snapscore.vercel.app',
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Allow cookies/auth headers
+    credentials: true,
   });
 
   await app.listen(3001);
