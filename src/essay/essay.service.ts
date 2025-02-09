@@ -29,10 +29,10 @@ export class EssayService {
       console.log('Step 1: Saving Image');
 
       // 1. Upload the image and get the URL
-      const uploadResult = await this.uploadService.uploadFile(
-        `essays/${assessmentId}-${Date.now()}`,
-        file,
-      );
+      // const uploadResult = await this.uploadService.uploadFile(
+      //   `essays/${assessmentId}-${Date.now()}`,
+      //   file,
+      // );
 
       console.log('Step 2: Finding Assessment Data');
 
@@ -144,7 +144,6 @@ export class EssayService {
           studentName: evaluationData.studentName,
           assessmentId,
           score: evaluationData.totalScore,
-          paperImage: uploadResult.url,
           questionResults: questionResults,
         };
 
@@ -215,7 +214,7 @@ export class EssayService {
     studentName: string;
     assessmentId: string;
     score: number;
-    paperImage: string;
+    paperImage?: string;
     questionResults: QuestionResults;
   }) {
     console.log('Adding Essay Result', data);
