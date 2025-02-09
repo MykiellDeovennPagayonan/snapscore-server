@@ -181,7 +181,8 @@ const checkIdentification: ChatCompletionTool = {
               },
               studentAnswer: {
                 type: 'string',
-                description: "The student's provided answer for the item.",
+                description:
+                  "The student's provided answer for the item. NOte: Do not be too strict because of bad hand writing",
               },
               isCorrect: {
                 type: 'boolean',
