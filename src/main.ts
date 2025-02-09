@@ -8,7 +8,6 @@ async function bootstrap() {
     origin: [
       'https://snapscore-web.vercel.app',
       'http://localhost:3000',
-      '*',
       'https://snapscore.vercel.app',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
