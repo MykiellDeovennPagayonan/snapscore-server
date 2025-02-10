@@ -20,6 +20,11 @@ export class UsersController {
     return this.usersService.getAllUsers();
   }
 
+  @Get('exists')
+  async doesEmailExist(@Query('email') email: string) {
+    return { exists: await this.usersService.doesEmailExist(email.toLowerCase()) };
+  }
+
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     return this.usersService.getUserById(id);
@@ -43,10 +48,5 @@ export class UsersController {
   @Delete(':id')
   async deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
-  }
-
-  @Get('exists')
-  async doesEmailExist(@Query('email') email: string) {
-    return { exists: await this.usersService.doesEmailExist(email.toLowerCase()) };
   }
 }
