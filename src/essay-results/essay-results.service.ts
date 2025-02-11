@@ -17,17 +17,35 @@ export class EssayResultsService {
   }
 
   async getEssayResultById(id: string) {
-    return prisma.essayResult.findUnique({
+    const result = await prisma.essayResult.findUnique({
       where: { id },
       include: {
-        assessment: true,
+        assessment: {
+          include: {
+            essayQuestions: {
+              include: {
+                essayCriteria: true,
+              },
+            },
+          },
+        },
         questionResults: {
           include: {
-            essayCriteriaResults: true,
+            question: true,
+            essayCriteriaResults: {
+              include: {
+                criteria: true,
+              },
+            },
           },
         },
       },
     });
+    if (!result) {
+      throw new Error('Essay result not found');
+    }
+    console.log(result.questionResults[0].essayCriteriaResults[0].criteria);
+    return result;
   }
 
   async addEssayResult(data: {
@@ -87,7 +105,10 @@ export class EssayResultsService {
     });
   }
 
-  async updateEssayResult(id: string, data: { score?: number }) {
+  async updateEssayResult(
+    id: string,
+    data: { score?: number; studentName?: string },
+  ) {
     return prisma.essayResult.update({
       where: { id },
       data,
@@ -107,13 +128,14 @@ export class EssayResultsService {
         assessment: true,
         questionResults: {
           include: {
+            question: true,
             essayCriteriaResults: {
               include: {
-                // criteria: {
-                //   include: {
-                //     rubrics: true,
-                //   },
-                // },
+                criteria: {
+                  include: {
+                    rubrics: true, // Include rubrics if needed
+                  },
+                },
               },
             },
           },

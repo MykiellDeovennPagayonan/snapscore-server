@@ -57,7 +57,7 @@ model EssayQuestion {
   assessment    EssayAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
-  // EssayResult   EssayQuestionResult[]
+  EssayResult   EssayQuestionResult[]
 }
 
 model EssayCriteria {
@@ -69,7 +69,7 @@ model EssayCriteria {
   essayQuestion   EssayQuestion         @relation(fields: [essayQuestionId], references: [id], onDelete: Cascade)
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
-  // criteriaResults EssayCriteriaResult[]
+  criteriaResults EssayCriteriaResult[]
 }
 
 model Rubric {
@@ -84,6 +84,7 @@ model EssayResult {
   id              String                @id @default(auto()) @map("_id") @db.ObjectId
   studentName     String
   score           Int
+  paperImage      String                @default("notfound.jpg")
   assessmentId    String                @db.ObjectId
   assessment      EssayAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   createdAt       DateTime              @default(now())
@@ -96,8 +97,8 @@ model EssayQuestionResult {
   score                Int
   resultId             String                @db.ObjectId
   result               EssayResult           @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  // questionId           String                @db.ObjectId
-  // question             EssayQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId           String                @db.ObjectId
+  question             EssayQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   createdAt            DateTime              @default(now())
   essayCriteriaResults EssayCriteriaResult[]
 }
@@ -107,17 +108,18 @@ model EssayCriteriaResult {
   score            Int
   questionResultId String              @db.ObjectId
   questionResult   EssayQuestionResult @relation(fields: [questionResultId], references: [id], onDelete: Cascade)
-  // criteriaId       String              @db.ObjectId
-  // criteria         EssayCriteria       @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+  criteriaId       String              @db.ObjectId
+  criteria         EssayCriteria       @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
   createdAt        DateTime            @default(now())
 }
 
 model IdentificationResult {
   id              String                         @id @default(auto()) @map("_id") @db.ObjectId
   studentName     String
+  paperImage      String                         @default("notfound.jpg")
   assessmentId    String                         @db.ObjectId
   assessment      IdentificationAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  createdAt        DateTime            @default(now())
+  createdAt       DateTime                       @default(now())
   questionResults IdentificationQuestionResult[]
 }
 

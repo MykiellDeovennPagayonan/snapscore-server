@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import OpenAI from 'openai';
@@ -6,6 +11,8 @@ import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
 import { ChatCompletionTool } from 'openai/resources/index.mjs';
 
 import * as dotenv from 'dotenv';
+import { prisma } from 'src/prisma';
+import { UploadService } from 'src/upload/upload.service';
 
 dotenv.config();
 
@@ -35,84 +42,120 @@ export class IdentificationService {
       );
     }
   }
+  constructor(private readonly uploadService: UploadService) {}
 
-  async gradeIdentification(filename: string): Promise<number> {
+  async processIdentification(
+    assessmentId: string,
+    file: Express.Multer.File,
+  ): Promise<any> {
     try {
-      const imageBase64 = await this.convertImageToBase64(filename);
-
-      if (!imageBase64) {
-        throw new BadRequestException('Failed to convert image to Base64');
-      }
-
-      console.log(imageBase64);
-
-      const messages: ChatCompletionMessageParam[] = [
-        {
-          role: 'system',
-          content: `You are an AI that will check the identification test. Check the indentification answers always use the check_identification function. The answer sheet is as follows:
-          
-1. Mitochondria
-2. Iron
-3. Nitrogen
-4. Newton’s First Law of Motion (Inertia)
-5. Mars
-6. Photosynthesis
-7. Albert Einstein
-8. NaCl
-9. Heart
-10. Diamond
-11. Ampere (A)
-12. O negative
-13. 100°C
-14. Aurora Borealis
-15. Leaf
-16. Hydrogen
-17. Alexander Fleming
-18. Newton (N)
-19. Saturn
-20. Seismology
-            `,
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-              },
+      console.log('Step 1: Finding Assessment Data');
+      // 1. Get the assessment and its questions from the database
+      const assessment = await prisma.identificationAssessment.findUnique({
+        where: { id: assessmentId },
+        include: {
+          identificationQuestions: {
+            orderBy: {
+              createdAt: 'asc',
             },
-          ],
+          },
         },
-      ];
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 1,
-        max_tokens: 15010,
-        tools: functionCallingTools,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0,
       });
 
-      if (
-        response.choices[0].message.tool_calls &&
-        response.choices[0].message.tool_calls[0].function.name ===
-          'check_identification'
-      ) {
-        const data =
-          response.choices[0].message.tool_calls[0].function.arguments;
-        const parsedData = JSON.parse(data);
-        console.log(parsedData);
-        return parsedData;
-      } else {
-        throw new BadRequestException('Failed to rate the essay');
+      console.log('Assessment', assessment);
+
+      if (!assessment) {
+        throw new NotFoundException('Assessment not found');
       }
+
+      console.log('Step 2: Saving Image');
+
+      // 2. Upload the image to S3
+      const [uploadResult, aiResponse] = await Promise.all([
+        this.uploadService.uploadFile(
+          `identification/${assessmentId}/${Date.now()}`,
+          file,
+        ),
+        this.getAIAnalysis(
+          Buffer.from(file.buffer).toString('base64'),
+          assessment.identificationQuestions,
+        ),
+      ]);
+
+      console.log('Step 5: Save the Results');
+
+      // 4. Create the identification result with the image URL
+      const result = await prisma.identificationResult.create({
+        data: {
+          studentName: aiResponse.studentName,
+          assessmentId: assessmentId,
+          paperImage: uploadResult.url, // Store the S3 URL
+          questionResults: {
+            create: aiResponse.items.map((item) => ({
+              isCorrect: item.isCorrect,
+              answer: item.studentAnswer,
+              questionId:
+                assessment.identificationQuestions[item.itemNumber - 1].id,
+            })),
+          },
+        },
+        include: {
+          questionResults: true,
+        },
+      });
+
+      console.log('Result', result);
+
+      return result;
     } catch (error) {
+      this.logger.error(`Error processing identification: ${error.message}`);
       throw error;
     }
+  }
+
+  async getAIAnalysis(imageBase64: string, questions: any[]): Promise<any> {
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: `You are an AI that will check the identification test. Check the identification answers against the provided correct answers. Always use the check_identification function. The answer sheet has ${questions.length} questions with the following correct answers:\n\n${questions.map((q, i) => `${i + 1}. ${q.correctAnswer}`).join('\n')}`,
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:image/jpeg;base64,${imageBase64}`,
+            },
+          },
+        ],
+      },
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: messages,
+      temperature: 1,
+      max_tokens: 15010,
+      tools: functionCallingTools,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
+
+    if (
+      response.choices[0].message.tool_calls &&
+      response.choices[0].message.tool_calls[0].function.name ===
+        'check_identification'
+    ) {
+      const data = JSON.parse(
+        response.choices[0].message.tool_calls[0].function.arguments,
+      );
+      console.log(data);
+      return data;
+    }
+
+    throw new BadRequestException('Failed to analyze the identification test');
   }
 }
 
@@ -121,7 +164,7 @@ const checkIdentification: ChatCompletionTool = {
   function: {
     name: 'check_identification',
     description:
-      'Use this function to check identification answers by comparing student answers with correct answers.',
+      'Use this function to check identification answers by comparing student answers with correct answers. Consider similar answers such as acronyms and shortcuts.',
     parameters: {
       type: 'object',
       properties: {
@@ -139,7 +182,8 @@ const checkIdentification: ChatCompletionTool = {
             properties: {
               itemNumber: {
                 type: 'number',
-                description: 'The item number in the identification test.',
+                description:
+                  'The item number in the identification test shown on the image.',
               },
               correctAnswer: {
                 type: 'string',
@@ -147,7 +191,8 @@ const checkIdentification: ChatCompletionTool = {
               },
               studentAnswer: {
                 type: 'string',
-                description: "The student's provided answer for the item.",
+                description:
+                  "The student's provided answer for the item. NOte: Do not be too strict because of bad hand writing, if confidence is .7 or higher and its answer is very similar to correct answer, then just make it correct ",
               },
               isCorrect: {
                 type: 'boolean',
@@ -157,7 +202,12 @@ const checkIdentification: ChatCompletionTool = {
               manualCheck: {
                 type: 'boolean',
                 description:
-                  'Indicates that the item needs manual checking as the AI is doubtful about the correctedness of the checking. Happens could be of very poor handwriting which is not readable by the AI.',
+                  'Indicates that the item needs manual checking as the AI is doubtful about the correctedness of the checking.',
+              },
+              confidence: {
+                type: 'number',
+                description:
+                  'Confidence score (0-1) of the AI in its assessment.',
               },
             },
             required: [
@@ -166,12 +216,28 @@ const checkIdentification: ChatCompletionTool = {
               'studentAnswer',
               'isCorrect',
               'manualCheck',
+              'confidence',
             ],
           },
         },
+        metadata: {
+          type: 'object',
+          description: 'Additional information about the assessment',
+          properties: {
+            imageQuality: {
+              type: 'string',
+              enum: ['good', 'moderate', 'poor'],
+              description: 'Quality assessment of the uploaded image',
+            },
+            processingTime: {
+              type: 'number',
+              description: 'Time taken to process the image in milliseconds',
+            },
+          },
+          required: ['imageQuality'],
+        },
       },
-      required: ['items', 'studentName'],
-      additionalProperties: false,
+      required: ['items', 'studentName', 'metadata'],
     },
   },
 };

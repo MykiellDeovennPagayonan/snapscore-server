@@ -98,6 +98,59 @@ export class EssayAssessmentService {
     });
   }
 
+  async createEssayAssessmentById(data: {
+    name: string;
+    id: string;
+    questions: {
+      question: string;
+      essayCriteria: {
+        criteria: string;
+        maxScore: number;
+        rubrics: {
+          score: string;
+          description: string;
+        }[];
+      }[];
+    }[];
+  }) {
+    const { name, id, questions = [] } = data;
+
+    return prisma.essayAssessment.create({
+      data: {
+        name,
+        userId: id,
+        essayQuestions: {
+          create: questions.map((questionData) => ({
+            question: questionData.question,
+            essayCriteria: {
+              create: questionData.essayCriteria.map((criteriaData) => ({
+                criteria: criteriaData.criteria,
+                maxScore: criteriaData.maxScore,
+                rubrics: {
+                  create: criteriaData.rubrics.map((rubricData) => ({
+                    score: rubricData.score,
+                    description: rubricData.description,
+                  })),
+                },
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        essayQuestions: {
+          include: {
+            essayCriteria: {
+              include: {
+                rubrics: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async updateEssayAssessment(id: string, data: { name?: string }) {
     return prisma.essayAssessment.update({
       where: { id },

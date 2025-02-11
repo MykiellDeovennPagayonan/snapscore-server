@@ -12,23 +12,25 @@ export class IdentificationAssessmentService {
   async getIdentificationAssessmentById(id: string) {
     return prisma.identificationAssessment.findUnique({
       where: { id },
-      include: { user: true, identificationResults: true },
+      include: {
+        user: true,
+        identificationResults: true,
+        identificationQuestions: true,
+      },
     });
   }
-
-  async getIdentificationAssessmentsByFirebaseId(firebaseId: string) {
-    const user = await prisma.user.findUnique({
-      where: { firebaseId },
+  async getIdentificationAssessmentsByUserId(id: string) {
+    console.log(id);
+    const assessments = await prisma.identificationAssessment.findMany({
+      where: { userId: id },
+      include: {
+        user: true,
+        identificationResults: true,
+        identificationQuestions: true, // Add this to match your Flutter model
+      },
     });
 
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    return prisma.identificationAssessment.findMany({
-      where: { userId: user.id },
-      include: { user: true, identificationResults: true },
-    });
+    return assessments || []; // Return empty array if no assessments found
   }
 
   async createIdentificationAssessment(data: {
@@ -50,6 +52,29 @@ export class IdentificationAssessmentService {
       data: {
         name,
         userId: user.id,
+        identificationQuestions: {
+          create: questions.map((question) => ({
+            correctAnswer: question.correctAnswer,
+          })),
+        },
+      },
+      include: {
+        identificationQuestions: true,
+      },
+    });
+  }
+
+  async createIdentificationAssessmentById(data: {
+    name: string;
+    id: string;
+    questions: { correctAnswer: string }[];
+  }) {
+    const { name, id, questions = [] } = data;
+
+    return prisma.identificationAssessment.create({
+      data: {
+        name,
+        userId: id,
         identificationQuestions: {
           create: questions.map((question) => ({
             correctAnswer: question.correctAnswer,

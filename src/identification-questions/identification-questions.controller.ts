@@ -29,6 +29,7 @@ export class IdentificationQuestionsController {
 
   @Post()
   async addIdentificationQuestion(@Body() addQuestionDto: any) {
+    console.log(addQuestionDto);
     return this.identificationQuestionsService.addIdentificationQuestion(
       addQuestionDto,
     );

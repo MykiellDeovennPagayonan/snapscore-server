@@ -35,6 +35,18 @@ export class IdentificationAssessmentController {
     return this.identificationService.createIdentificationAssessment(data);
   }
 
+  @Post('user')
+  async createIdentificationAssessmentById(
+    @Body()
+    data: {
+      name: string;
+      id: string;
+      questions: { correctAnswer: string }[];
+    },
+  ) {
+    return this.identificationService.createIdentificationAssessmentById(data);
+  }
+
   @Put(':id')
   async updateIdentificationAssessment(
     @Param('id') id: string,
@@ -53,7 +65,7 @@ export class IdentificationAssessmentController {
 
   @Get('user-identification/:userId')
   async getAssessmentsByUser(@Param('userId') userId: string) {
-    return this.identificationService.getIdentificationAssessmentsByFirebaseId(
+    return this.identificationService.getIdentificationAssessmentsByUserId(
       userId,
     );
   }

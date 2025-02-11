@@ -39,6 +39,7 @@ export class IdentificationResultsService {
       data: {
         studentName: data.studentName,
         assessmentId: data.assessmentId,
+        paperImage: 'notfound.jpg',
         questionResults: {
           create: data.questionResults.map((result) => ({
             isCorrect: result.isCorrect,
@@ -94,11 +95,7 @@ export class IdentificationResultsService {
       where: { assessmentId },
       include: {
         assessment: true,
-        questionResults: {
-          include: {
-            question: true,
-          },
-        },
+        questionResults: true,
       },
       orderBy: {
         createdAt: 'desc',

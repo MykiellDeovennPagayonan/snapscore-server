@@ -20,6 +20,7 @@ export class EssayResultsController {
 
   @Get(':id')
   async getEssayResultById(@Param('id') id: string) {
+    console.log(id);
     return this.essayResultsService.getEssayResultById(id);
   }
 
@@ -87,6 +88,7 @@ export class EssayResultsController {
       score?: number;
     },
   ) {
+    console.log('updated', updateEssayResultDto);
     return this.essayResultsService.updateEssayResult(id, updateEssayResultDto);
   }
 

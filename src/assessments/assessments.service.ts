@@ -16,26 +16,36 @@ export class AssessmentsService {
 
     const essayAssessments = await prisma.essayAssessment.findMany({
       where: { userId: user.id },
-      select: { id: true, name: true },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, name: true, createdAt: true },
     });
 
     const identificationAssessments =
       await prisma.identificationAssessment.findMany({
         where: { userId: user.id },
-        select: { id: true, name: true },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, name: true, createdAt: true },
       });
 
-    return [
-      ...essayAssessments.map((a) => ({
-        id: a.id,
-        title: a.name,
+    const combinedAssessments = [
+      ...essayAssessments.map((assessment) => ({
+        id: assessment.id,
+        title: assessment.name,
         type: 'essay',
+        createdAt: assessment.createdAt,
       })),
-      ...identificationAssessments.map((a) => ({
-        id: a.id,
-        title: a.name,
+      ...identificationAssessments.map((assessment) => ({
+        id: assessment.id,
+        title: assessment.name,
         type: 'identification',
+        createdAt: assessment.createdAt,
       })),
     ];
+
+    combinedAssessments.sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
+
+    return combinedAssessments;
   }
 }

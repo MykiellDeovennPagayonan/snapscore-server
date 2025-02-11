@@ -7,6 +7,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 
@@ -17,6 +18,13 @@ export class UsersController {
   @Get()
   async getAllUsers() {
     return this.usersService.getAllUsers();
+  }
+
+  @Get('exists')
+  async doesEmailExist(@Query('email') email: string) {
+    return {
+      exists: await this.usersService.doesEmailExist(email.toLowerCase()),
+    };
   }
 
   @Get(':id')
