@@ -69,10 +69,10 @@ export class IdentificationService {
       console.log('Step 2: Saving Image');
 
       // 2. Upload the image to S3
-      // const uploadResult = await this.uploadService.uploadFile(
-      //   `identification/${assessmentId}/${Date.now()}`,
-      //   file,
-      // );
+      const uploadResult = await this.uploadService.uploadFile(
+        `identification/${assessmentId}/${Date.now()}`,
+        file,
+      );
 
       console.log('Step 3: Converting Image to Base64');
 
@@ -93,7 +93,7 @@ export class IdentificationService {
         data: {
           studentName: aiResponse.studentName,
           assessmentId: assessmentId,
-          // paperImage: uploadResult.url, // Store the S3 URL
+          paperImage: uploadResult.url, // Store the S3 URL
           questionResults: {
             create: aiResponse.items.map((item) => ({
               isCorrect: item.isCorrect,
