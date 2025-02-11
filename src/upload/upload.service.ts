@@ -156,6 +156,6 @@ export class UploadService {
   }
 
   getFileUrl(path: string) {
-    return `https://${this.bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${path}`;
+    return `https://${this.bucket}.s3.${process.env.AWS_REGION_NEST}.amazonaws.com/${path}`;
   }
 }

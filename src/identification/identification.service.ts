@@ -62,6 +62,8 @@ export class IdentificationService {
         },
       });
 
+      console.log('Assessment', assessment);
+
       if (!assessment) {
         throw new NotFoundException('Assessment not found');
       }
@@ -69,22 +71,16 @@ export class IdentificationService {
       console.log('Step 2: Saving Image');
 
       // 2. Upload the image to S3
-      const uploadResult = await this.uploadService.uploadFile(
-        `identification/${assessmentId}/${Date.now()}`,
-        file,
-      );
-
-      console.log('Step 3: Converting Image to Base64');
-
-      // 3. Get AI analysis of the image
-      const imageBase64 = Buffer.from(file.buffer).toString('base64');
-
-      console.log('Step 4: AI Evaluates the Essay');
-
-      const aiResponse = await this.getAIAnalysis(
-        imageBase64,
-        assessment.identificationQuestions,
-      );
+      const [uploadResult, aiResponse] = await Promise.all([
+        this.uploadService.uploadFile(
+          `identification/${assessmentId}/${Date.now()}`,
+          file,
+        ),
+        this.getAIAnalysis(
+          Buffer.from(file.buffer).toString('base64'),
+          assessment.identificationQuestions,
+        ),
+      ]);
 
       console.log('Step 5: Save the Results');
 
@@ -107,6 +103,8 @@ export class IdentificationService {
           questionResults: true,
         },
       });
+
+      console.log('Result', result);
 
       return result;
     } catch (error) {
@@ -166,7 +164,7 @@ const checkIdentification: ChatCompletionTool = {
   function: {
     name: 'check_identification',
     description:
-      'Use this function to check identification answers by comparing student answers with correct answers.',
+      'Use this function to check identification answers by comparing student answers with correct answers. Consider similar answers such as acronyms and shortcuts.',
     parameters: {
       type: 'object',
       properties: {
@@ -184,7 +182,8 @@ const checkIdentification: ChatCompletionTool = {
             properties: {
               itemNumber: {
                 type: 'number',
-                description: 'The item number in the identification test.',
+                description:
+                  'The item number in the identification test shown on the image.',
               },
               correctAnswer: {
                 type: 'string',

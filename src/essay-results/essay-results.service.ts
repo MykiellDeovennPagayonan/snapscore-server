@@ -105,7 +105,10 @@ export class EssayResultsService {
     });
   }
 
-  async updateEssayResult(id: string, data: { score?: number }) {
+  async updateEssayResult(
+    id: string,
+    data: { score?: number; studentName?: string },
+  ) {
     return prisma.essayResult.update({
       where: { id },
       data,

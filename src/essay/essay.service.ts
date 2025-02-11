@@ -444,7 +444,8 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
           },
           totalScore: {
             type: 'number',
-            description: 'Total score for the essay across all criteria',
+            description:
+              'Total score for the essay by summing up all scores from each criteria',
           },
           questionResults: {
             type: 'array',
@@ -462,7 +463,8 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
                 },
                 score: {
                   type: 'number',
-                  description: 'Total score for this question',
+                  description:
+                    'Total score for this question by adding up all criteria scores',
                 },
                 criteriaResults: {
                   type: 'array',

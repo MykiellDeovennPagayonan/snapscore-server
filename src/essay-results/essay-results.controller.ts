@@ -88,6 +88,7 @@ export class EssayResultsController {
       score?: number;
     },
   ) {
+    console.log('updated', updateEssayResultDto);
     return this.essayResultsService.updateEssayResult(id, updateEssayResultDto);
   }
 
