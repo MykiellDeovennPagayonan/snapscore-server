@@ -61,29 +61,30 @@ export class IdentificationService {
         },
       });
 
+      console.log('Assessment', assessment);
+
       if (!assessment) {
         throw new NotFoundException('Assessment not found');
       }
 
       // 2. Upload the image to S3
-      // const uploadResult = await this.uploadService.uploadFile(
-      //   `identification/${assessmentId}/${Date.now()}`,
-      //   file,
-      // );
-
-      // 3. Get AI analysis of the image
-      const imageBase64 = Buffer.from(file.buffer).toString('base64');
-      const aiResponse = await this.getAIAnalysis(
-        imageBase64,
-        assessment.identificationQuestions,
-      );
+      const [uploadResult, aiResponse] = await Promise.all([
+        this.uploadService.uploadFile(
+          `identification/${assessmentId}/${Date.now()}`,
+          file,
+        ),
+        this.getAIAnalysis(
+          Buffer.from(file.buffer).toString('base64'),
+          assessment.identificationQuestions,
+        ),
+      ]);
 
       // 4. Create the identification result with the image URL
       const result = await prisma.identificationResult.create({
         data: {
           studentName: aiResponse.studentName,
           assessmentId: assessmentId,
-          // paperImage: uploadResult.url, // Store the S3 URL
+          paperImage: uploadResult.url, // Store the S3 URL
           questionResults: {
             create: aiResponse.items.map((item) => ({
               isCorrect: item.isCorrect,
@@ -97,6 +98,8 @@ export class IdentificationService {
           questionResults: true,
         },
       });
+
+      console.log('Result', result);
 
       return result;
     } catch (error) {
@@ -155,7 +158,7 @@ const checkIdentification: ChatCompletionTool = {
   function: {
     name: 'check_identification',
     description:
-      'Use this function to check identification answers by comparing student answers with correct answers.',
+      'Use this function to check identification answers by comparing student answers with correct answers. Consider similar answers such as acronyms and shortcuts.',
     parameters: {
       type: 'object',
       properties: {
@@ -173,7 +176,8 @@ const checkIdentification: ChatCompletionTool = {
             properties: {
               itemNumber: {
                 type: 'number',
-                description: 'The item number in the identification test.',
+                description:
+                  'The item number in the identification test shown on the image.',
               },
               correctAnswer: {
                 type: 'string',
@@ -182,7 +186,7 @@ const checkIdentification: ChatCompletionTool = {
               studentAnswer: {
                 type: 'string',
                 description:
-                  "The student's provided answer for the item. NOte: Do not be too strict because of bad hand writing",
+                  "The student's provided answer for the item. Note: Do not be too strict because of bad hand writing.",
               },
               isCorrect: {
                 type: 'boolean',
