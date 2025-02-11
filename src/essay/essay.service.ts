@@ -117,15 +117,19 @@ export class EssayService {
 
         // 7. Save results with validation
         console.log(evaluationData);
+        console.log(evaluationData.questionResults[0].criteriaResults);
         // console.log(evaluationData.questionResults[0].criteriaResults);
 
         const questionResults: QuestionResults =
           evaluationData.questionResults.map((questionResult) => {
-            console.log(questionResult);
+            let totalScore = 0;
+            questionResult.criteriaResults.forEach((cr) => {
+              totalScore += cr.score;
+            });
             return {
               questionId: questionResult.questionId,
               answer: questionResult.answer,
-              score: questionResult.score,
+              score: totalScore,
               essayCriteriaResults: questionResult.criteriaResults.map(
                 (criteriaresult) => {
                   return {

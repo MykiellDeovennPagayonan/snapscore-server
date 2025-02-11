@@ -49,6 +49,7 @@ export class IdentificationService {
     file: Express.Multer.File,
   ): Promise<any> {
     try {
+      console.log('Step 1: Finding Assessment Data');
       // 1. Get the assessment and its questions from the database
       const assessment = await prisma.identificationAssessment.findUnique({
         where: { id: assessmentId },
@@ -65,18 +66,27 @@ export class IdentificationService {
         throw new NotFoundException('Assessment not found');
       }
 
+      console.log('Step 2: Saving Image');
+
       // 2. Upload the image to S3
       // const uploadResult = await this.uploadService.uploadFile(
       //   `identification/${assessmentId}/${Date.now()}`,
       //   file,
       // );
 
+      console.log('Step 3: Converting Image to Base64');
+
       // 3. Get AI analysis of the image
       const imageBase64 = Buffer.from(file.buffer).toString('base64');
+
+      console.log('Step 4: AI Evaluates the Essay');
+
       const aiResponse = await this.getAIAnalysis(
         imageBase64,
         assessment.identificationQuestions,
       );
+
+      console.log('Step 5: Save the Results');
 
       // 4. Create the identification result with the image URL
       const result = await prisma.identificationResult.create({
@@ -143,6 +153,7 @@ export class IdentificationService {
       const data = JSON.parse(
         response.choices[0].message.tool_calls[0].function.arguments,
       );
+      console.log(data);
       return data;
     }
 
@@ -182,7 +193,7 @@ const checkIdentification: ChatCompletionTool = {
               studentAnswer: {
                 type: 'string',
                 description:
-                  "The student's provided answer for the item. NOte: Do not be too strict because of bad hand writing",
+                  "The student's provided answer for the item. NOte: Do not be too strict because of bad hand writing, if confidence is .7 or higher and its answer is very similar to correct answer, then just make it correct ",
               },
               isCorrect: {
                 type: 'boolean',
