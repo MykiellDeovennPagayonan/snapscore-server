@@ -50,7 +50,8 @@ export class IdentificationAssessmentController {
   @Put(':id')
   async updateIdentificationAssessment(
     @Param('id') id: string,
-    @Body() updateDto: { name?: string },
+    @Body()
+    updateDto: { name?: string; questions?: { correctAnswer: string }[] },
   ) {
     return this.identificationService.updateIdentificationAssessment(
       id,

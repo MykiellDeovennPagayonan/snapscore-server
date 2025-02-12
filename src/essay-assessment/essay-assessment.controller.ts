@@ -34,10 +34,7 @@ export class EssayAssessmentController {
         essayCriteria: {
           criteria: string;
           maxScore: number;
-          rubrics: {
-            score: string;
-            description: string;
-          }[];
+          rubrics: { score: string; description: string }[];
         }[];
       }[];
     },
@@ -56,10 +53,7 @@ export class EssayAssessmentController {
         essayCriteria: {
           criteria: string;
           maxScore: number;
-          rubrics: {
-            score: string;
-            description: string;
-          }[];
+          rubrics: { score: string; description: string }[];
         }[];
       }[];
     },
@@ -67,10 +61,22 @@ export class EssayAssessmentController {
     return this.essayService.createEssayAssessmentById(data);
   }
 
+  // Updated PUT endpoint now accepts both name and questions.
   @Put(':id')
   async updateEssayAssessment(
     @Param('id') id: string,
-    @Body() updateDto: { name?: string },
+    @Body()
+    updateDto: {
+      name?: string;
+      questions?: {
+        question: string;
+        essayCriteria: {
+          criteria: string;
+          maxScore: number;
+          rubrics: { score: string; description: string }[];
+        }[];
+      }[];
+    },
   ) {
     return this.essayService.updateEssayAssessment(id, updateDto);
   }

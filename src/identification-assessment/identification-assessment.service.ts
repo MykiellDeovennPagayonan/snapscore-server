@@ -19,6 +19,7 @@ export class IdentificationAssessmentService {
       },
     });
   }
+
   async getIdentificationAssessmentsByUserId(id: string) {
     console.log(id);
     const assessments = await prisma.identificationAssessment.findMany({
@@ -26,11 +27,10 @@ export class IdentificationAssessmentService {
       include: {
         user: true,
         identificationResults: true,
-        identificationQuestions: true, // Add this to match your Flutter model
+        identificationQuestions: true,
       },
     });
-
-    return assessments || []; // Return empty array if no assessments found
+    return assessments || [];
   }
 
   async createIdentificationAssessment(data: {
@@ -87,10 +87,41 @@ export class IdentificationAssessmentService {
     });
   }
 
-  async updateIdentificationAssessment(id: string, data: { name?: string }) {
-    return prisma.identificationAssessment.update({
-      where: { id },
-      data,
+  async updateIdentificationAssessment(
+    id: string,
+    data: { name?: string; questions?: { correctAnswer: string }[] },
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      await tx.identificationAssessment.update({
+        where: { id },
+        data: { name: data.name },
+      });
+
+      await tx.identificationQuestion.deleteMany({
+        where: { assessmentId: id },
+      });
+
+      if (data.questions && data.questions.length > 0) {
+        await tx.identificationAssessment.update({
+          where: { id },
+          data: {
+            identificationQuestions: {
+              create: data.questions.map((q) => ({
+                correctAnswer: q.correctAnswer,
+              })),
+            },
+          },
+        });
+      }
+
+      return tx.identificationAssessment.findUnique({
+        where: { id },
+        include: {
+          identificationQuestions: true,
+          user: true,
+          identificationResults: true,
+        },
+      });
     });
   }
 
