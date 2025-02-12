@@ -29,11 +29,8 @@ export class UsersService {
     });
   }
 
-  async updateUser(
-    id: string,
-    data: { fullName?: string; email?: string; password?: string },
-  ) {
-    return prisma.user.update({
+  async updateUser(id: string, data: { fullName: string }) {
+    return await prisma.user.update({
       where: { id },
       data,
     });
