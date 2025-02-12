@@ -39,7 +39,7 @@ export class UploadService {
   }
 
   private getFileExtension(mimeType: string): string {
-    const mimeToExt = {
+    const mimeToExt: Record<string, string> = {
       'image/jpeg': '.jpg',
       'image/jpg': '.jpg',
       'image/png': '.png',
@@ -52,19 +52,25 @@ export class UploadService {
 
   private async compressImage(buffer: Buffer, mime: string): Promise<Buffer> {
     try {
+      // For GIFs, do not attempt compression.
       if (mime === 'image/gif') {
         return buffer;
       }
 
-      let compressedImage = await sharp(buffer)
+      // Use sharp's default export if available; otherwise, use sharp itself.
+      const imageSharp = (sharp as any).default || sharp;
+
+      // First attempt with quality 80 and full chroma subsampling.
+      let compressedImage = await imageSharp(buffer)
         .jpeg({
           quality: 80,
           chromaSubsampling: '4:4:4',
         })
         .toBuffer();
 
+      // If the resulting buffer is too large, try compressing further.
       if (compressedImage.length > this.MAX_SIZE) {
-        compressedImage = await sharp(buffer)
+        compressedImage = await imageSharp(buffer)
           .jpeg({
             quality: 60,
             chromaSubsampling: '4:2:0',
@@ -73,7 +79,7 @@ export class UploadService {
       }
 
       return compressedImage;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Image compression error:', error);
       throw new BadRequestException(
         `Image compression failed: ${error.message}`,
@@ -122,7 +128,7 @@ export class UploadService {
         size: processedBuffer.length,
         type: contentType,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
       throw new BadRequestException(`Failed to upload file: ${error.message}`);
     }

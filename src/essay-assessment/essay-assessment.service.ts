@@ -24,7 +24,7 @@ export class EssayAssessmentService {
   }
 
   async getEssayAssessmentByUserId(id: string) {
-    console.log('fetching essay assessment by id', id);
+    console.log('fetching essay assessment by user id', id);
     return prisma.essayAssessment.findMany({
       where: { userId: id },
       include: {
@@ -88,9 +88,7 @@ export class EssayAssessmentService {
         essayQuestions: {
           include: {
             essayCriteria: {
-              include: {
-                rubrics: true,
-              },
+              include: { rubrics: true },
             },
           },
         },
@@ -141,9 +139,7 @@ export class EssayAssessmentService {
         essayQuestions: {
           include: {
             essayCriteria: {
-              include: {
-                rubrics: true,
-              },
+              include: { rubrics: true },
             },
           },
         },
@@ -151,10 +147,74 @@ export class EssayAssessmentService {
     });
   }
 
-  async updateEssayAssessment(id: string, data: { name?: string }) {
-    return prisma.essayAssessment.update({
-      where: { id },
-      data,
+  // Updated update method to update the assessment name and completely replace nested essay questions.
+  async updateEssayAssessment(
+    id: string,
+    data: {
+      name?: string;
+      questions?: {
+        question: string;
+        essayCriteria: {
+          criteria: string;
+          maxScore: number;
+          rubrics: { score: string; description: string }[];
+        }[];
+      }[];
+    },
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      // Update the assessment name if provided.
+      if (data.name) {
+        await tx.essayAssessment.update({
+          where: { id },
+          data: { name: data.name },
+        });
+      }
+
+      // Delete all existing essay questions for this assessment.
+      await tx.essayQuestion.deleteMany({
+        where: { assessmentId: id },
+      });
+
+      // If new questions are provided, create them with their nested criteria and rubrics.
+      if (data.questions && data.questions.length > 0) {
+        await tx.essayAssessment.update({
+          where: { id },
+          data: {
+            essayQuestions: {
+              create: data.questions.map((questionData) => ({
+                question: questionData.question,
+                essayCriteria: {
+                  create: questionData.essayCriteria.map((criteriaData) => ({
+                    criteria: criteriaData.criteria,
+                    maxScore: criteriaData.maxScore,
+                    rubrics: {
+                      create: criteriaData.rubrics.map((rubricData) => ({
+                        score: rubricData.score,
+                        description: rubricData.description,
+                      })),
+                    },
+                  })),
+                },
+              })),
+            },
+          },
+        });
+      }
+
+      // Return the updated essay assessment with its nested relations.
+      return tx.essayAssessment.findUnique({
+        where: { id },
+        include: {
+          essayQuestions: {
+            include: {
+              essayCriteria: { include: { rubrics: true } },
+            },
+          },
+          user: true,
+          essayResults: true,
+        },
+      });
     });
   }
 
