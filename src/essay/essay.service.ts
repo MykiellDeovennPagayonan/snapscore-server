@@ -412,28 +412,28 @@ function getEvaluationTool(assessment: any): ChatCompletionTool {
   });
 
   // Create a description of the assessment structure
-  const description: string = questions
-    .map((q) => {
-      const criteriaDesc: string = q.criteria
-        .map(
-          (c) =>
-            `    - Criteria ${c.id}: ${c.name}${
-              c.description ? ` (${c.description})` : ''
-            }\n      Max Score: ${c.maxScore} points\n      Rubric Levels:${c.rubrics
-              .map((r) => `\n        - Score ${r.score}: ${r.description}`)
-              .join('')}`,
-        )
-        .join('\n');
+  // const description: string = questions
+  //   .map((q) => {
+  //     const criteriaDesc: string = q.criteria
+  //       .map(
+  //         (c) =>
+  //           `    - Criteria ${c.id}: ${c.name}${
+  //             c.description ? ` (${c.description})` : ''
+  //           }\n      Max Score: ${c.maxScore} points\n      Rubric Levels:${c.rubrics
+  //             .map((r) => `\n        - Score ${r.score}: ${r.description}`)
+  //             .join('')}`,
+  //       )
+  //       .join('\n');
 
-      return `Question ${q.sequence}:\n${criteriaDesc}`;
-    })
-    .join('\n\n');
+  //     return `Question ${q.sequence}:\n${criteriaDesc}`;
+  //   })
+  //   .join('\n\n');
 
   return {
     type: 'function',
     function: {
       name: 'evaluate_essay',
-      description,
+      description: 'Call this function when the user wants to rate an essay',
       parameters: {
         type: 'object',
         properties: {
