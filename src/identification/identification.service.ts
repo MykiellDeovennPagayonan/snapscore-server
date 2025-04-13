@@ -148,27 +148,27 @@ ${correctAnswersList}
 
 Please parse the answer sheet image and capture the student's answers in order from top-left to bottom-left and then top-right to bottom-right if the sheet is multi-column.
 If an item is unclear, mark it for manual checking (manualCheck: true) and set a lower confidence score.
+
 Always return your results using the check_identification function.`,
       },
       {
         role: 'user',
-        // Send the image in a JSON structure so the tool can interpret it properly.
-        content: JSON.stringify([
+        content: [
           {
             type: 'image_url',
             image_url: {
               url: `data:image/jpeg;base64,${imageBase64}`,
             },
           },
-        ]),
+        ],
       },
     ];
 
     // Call the chat completion endpoint with our function calling configuration.
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: messages,
-      temperature: 1,
+      temperature: 0.7,
       max_tokens: 15010,
       tools: functionCallingTools,
       top_p: 1,
@@ -198,7 +198,7 @@ const checkIdentification: ChatCompletionTool = {
   function: {
     name: 'check_identification',
     description:
-      'Use this function to check identification answers by comparing student answers with correct answers. Consider similar answers such as acronyms and shortcuts.',
+      'Use this function to check identification answers by comparing student answers with correct answers. Only case differences may be ignored, but different terms and common abbreviations should be marked incorrect',
     parameters: {
       type: 'object',
       properties: {
@@ -226,22 +226,22 @@ const checkIdentification: ChatCompletionTool = {
               studentAnswer: {
                 type: 'string',
                 description:
-                  "The student's provided answer for the item. Consider similar formats if handwriting is unclear.",
+                  "The student's provided answer for the item. Note: DO NOT TRY TO MATCH STUDENT ANSWER WITH CORRECT ANSWER JUST BECAUSE THEY LOOK SIMILAR OR IMAGE IS UNCLEAR. CAREFULLY IDENTIFY WHAT THE STUDENT HAS WRITTEN",
               },
               isCorrect: {
                 type: 'boolean',
                 description:
-                  "Indicates whether the student's answer matches the correct answer.",
+                  "Indicates if the student's answer matches the correct answer.",
               },
               manualCheck: {
                 type: 'boolean',
                 description:
-                  'Indicates that the item needs manual checking if the AI is unsure about its assessment.',
+                  'Indicates that the item needs manual checking as the AI is doubtful about the correctedness of the checking.',
               },
               confidence: {
                 type: 'number',
                 description:
-                  'Confidence score (from 0 to 1) of the AI in its assessment.',
+                  'Confidence score (0-1) of the AI in its assessment.',
               },
             },
             required: [
