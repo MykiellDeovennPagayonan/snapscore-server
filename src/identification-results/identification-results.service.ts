@@ -30,6 +30,7 @@ export class IdentificationResultsService {
     studentName: string;
     assessmentId: string;
     questionResults: {
+      number: number;
       isCorrect: boolean;
       answer: string;
       questionId: string;
@@ -42,6 +43,7 @@ export class IdentificationResultsService {
         paperImage: 'notfound.jpg',
         questionResults: {
           create: data.questionResults.map((result) => ({
+            number: result.number,
             isCorrect: result.isCorrect,
             questionId: result.questionId,
             answer: result.answer,
