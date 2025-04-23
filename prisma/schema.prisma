@@ -41,6 +41,7 @@ model IdentificationAssessment {
 
 model IdentificationQuestion {
   id             String                         @id @default(auto()) @map("_id") @db.ObjectId
+  number         Int                            
   correctAnswer  String
   assessmentId   String                         @db.ObjectId
   assessment     IdentificationAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
@@ -125,6 +126,7 @@ model IdentificationResult {
 
 model IdentificationQuestionResult {
   id         String                 @id @default(auto()) @map("_id") @db.ObjectId
+  number     Int
   isCorrect  Boolean
   answer     String                 @default("Unknown")
   resultId   String                 @db.ObjectId

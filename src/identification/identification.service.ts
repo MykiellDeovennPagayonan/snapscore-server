@@ -55,7 +55,7 @@ export class IdentificationService {
         include: {
           identificationQuestions: {
             orderBy: {
-              createdAt: 'asc',
+              number: 'asc',
             },
           },
         },
@@ -89,6 +89,7 @@ export class IdentificationService {
           paperImage: uploadResult.url, // Store the S3 URL.
           questionResults: {
             create: aiResponse.items.map((item) => ({
+              number: item.itemNumber,
               isCorrect: item.isCorrect,
               answer: item.studentAnswer,
               // Map the item number to the question.
@@ -114,6 +115,7 @@ export class IdentificationService {
     imageBase64: string,
     questions: {
       id: string;
+      number: number;
       assessmentId: string;
       createdAt: Date;
       updatedAt: Date;
@@ -135,7 +137,7 @@ export class IdentificationService {
 
     // Build a list of correct answers.
     const correctAnswersList = questions
-      .map((q, i) => `${i + 1}. ${q.correctAnswer}`)
+      .map((q) => `${q.number}. ${q.correctAnswer}`)
       .join('\n');
 
     // Create system message with explicit instructions.
@@ -217,7 +219,7 @@ const checkIdentification: ChatCompletionTool = {
               itemNumber: {
                 type: 'number',
                 description:
-                  'The item number in the identification test as it appears on the image.',
+                  'The item number in the identification test as it appears on the image. Make sure this is the same as the number in the correct answer list.',
               },
               correctAnswer: {
                 type: 'string',
