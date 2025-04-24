@@ -39,6 +39,7 @@ export class IdentificationResultsController {
       studentName: string;
       assessmentId: string;
       questionResults: {
+        number: number;
         questionId: string;
         isCorrect: boolean;
         answer: string;

@@ -225,14 +225,13 @@ export class EssayService {
     console.log('Adding Essay Result', data);
 
     let totalScore = 0;
-    data.questionResults.forEach(qResult => {
+    data.questionResults.forEach((qResult) => {
       totalScore += qResult.score;
     });
-    
+
     // Update the score with calculated total
     data.score = totalScore;
 
-    
     return prisma.essayResult.create({
       data: {
         studentName: data.studentName,

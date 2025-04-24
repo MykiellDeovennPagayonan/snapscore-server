@@ -44,7 +44,7 @@ export class UsersController {
 
   @Put(':id')
   async updateUser(@Param('id') id: string, @Body() updateUserDto: any) {
-    const data = {fullName: updateUserDto.fullName}
+    const data = { fullName: updateUserDto.fullName };
     return await this.usersService.updateUser(id, data);
   }
 

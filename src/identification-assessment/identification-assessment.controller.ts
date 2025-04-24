@@ -29,7 +29,7 @@ export class IdentificationAssessmentController {
     data: {
       name: string;
       firebaseId: string;
-      questions: { correctAnswer: string }[];
+      questions: { correctAnswer: string; number: number }[];
     },
   ) {
     return this.identificationService.createIdentificationAssessment(data);
@@ -41,7 +41,7 @@ export class IdentificationAssessmentController {
     data: {
       name: string;
       id: string;
-      questions: { correctAnswer: string }[];
+      questions: { correctAnswer: string; number: number }[];
     },
   ) {
     return this.identificationService.createIdentificationAssessmentById(data);
@@ -51,7 +51,10 @@ export class IdentificationAssessmentController {
   async updateIdentificationAssessment(
     @Param('id') id: string,
     @Body()
-    updateDto: { name?: string; questions?: { correctAnswer: string }[] },
+    updateDto: {
+      name?: string;
+      questions?: { correctAnswer: string; number: number }[];
+    },
   ) {
     return this.identificationService.updateIdentificationAssessment(
       id,
