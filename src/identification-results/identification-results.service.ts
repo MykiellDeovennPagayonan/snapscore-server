@@ -97,7 +97,11 @@ export class IdentificationResultsService {
       where: { assessmentId },
       include: {
         assessment: true,
-        questionResults: true,
+        questionResults: {
+          orderBy: {
+            number: 'asc',
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -109,7 +113,11 @@ export class IdentificationResultsService {
     const result = await prisma.identificationResult.findUnique({
       where: { id: resultId },
       include: {
-        questionResults: true,
+        questionResults: {
+          orderBy: {
+            number: 'asc',
+          },
+        },
       },
     });
 

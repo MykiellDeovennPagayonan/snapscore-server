@@ -15,7 +15,11 @@ export class IdentificationAssessmentService {
       include: {
         user: true,
         identificationResults: true,
-        identificationQuestions: true,
+        identificationQuestions: {
+          orderBy: {
+            number: 'asc',
+          },
+        },
       },
     });
   }
@@ -27,7 +31,11 @@ export class IdentificationAssessmentService {
       include: {
         user: true,
         identificationResults: true,
-        identificationQuestions: true,
+        identificationQuestions: {
+          orderBy: {
+            number: 'asc',
+          },
+        },
       },
     });
     return assessments || [];
