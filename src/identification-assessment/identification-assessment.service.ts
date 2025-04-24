@@ -36,7 +36,7 @@ export class IdentificationAssessmentService {
   async createIdentificationAssessment(data: {
     name: string;
     firebaseId: string;
-    questions: { correctAnswer: string }[];
+    questions: { correctAnswer: string; number: number }[];
   }) {
     const { name, firebaseId, questions } = data;
 
@@ -54,6 +54,7 @@ export class IdentificationAssessmentService {
         userId: user.id,
         identificationQuestions: {
           create: questions.map((question) => ({
+            number: question.number,
             correctAnswer: question.correctAnswer,
           })),
         },
@@ -67,7 +68,7 @@ export class IdentificationAssessmentService {
   async createIdentificationAssessmentById(data: {
     name: string;
     id: string;
-    questions: { correctAnswer: string }[];
+    questions: { correctAnswer: string; number: number }[];
   }) {
     const { name, id, questions = [] } = data;
 
@@ -78,6 +79,7 @@ export class IdentificationAssessmentService {
         identificationQuestions: {
           create: questions.map((question) => ({
             correctAnswer: question.correctAnswer,
+            number: question.number,
           })),
         },
       },
@@ -89,7 +91,10 @@ export class IdentificationAssessmentService {
 
   async updateIdentificationAssessment(
     id: string,
-    data: { name?: string; questions?: { correctAnswer: string }[] },
+    data: {
+      name?: string;
+      questions?: { correctAnswer: string; number: number }[];
+    },
   ) {
     return await prisma.$transaction(async (tx) => {
       await tx.identificationAssessment.update({
@@ -107,6 +112,7 @@ export class IdentificationAssessmentService {
           data: {
             identificationQuestions: {
               create: data.questions.map((q) => ({
+                number: q.number,
                 correctAnswer: q.correctAnswer,
               })),
             },
